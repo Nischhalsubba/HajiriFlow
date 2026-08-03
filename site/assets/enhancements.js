@@ -1,4 +1,4 @@
-const chartObserver = new MutationObserver(() => {
+function enhanceAttendanceChart() {
   const donut = document.querySelector(".donut");
   if (!donut || donut.dataset.enhanced === "true") return;
   const value = Number.parseInt(donut.querySelector("strong")?.textContent || "0", 10);
@@ -6,6 +6,8 @@ const chartObserver = new MutationObserver(() => {
   donut.classList.add(`p-${rounded}`);
   donut.removeAttribute("style");
   donut.dataset.enhanced = "true";
-});
+}
 
+const chartObserver = new MutationObserver(enhanceAttendanceChart);
 chartObserver.observe(document.getElementById("workspace"), { childList: true, subtree: true });
+enhanceAttendanceChart();
