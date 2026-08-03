@@ -1,0 +1,103 @@
+@media (max-width: 1240px) {
+  .metric-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .report-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .device-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .principle-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+
+@media (max-width: 1040px) {
+  :root { --sidebar: 232px; }
+  .topbar { padding-inline: 20px; }
+  .workspace { padding-inline: 20px; }
+  .demo-notice { margin-inline: 20px; }
+  .dashboard-grid, .organization-grid, .settings-grid { grid-template-columns: 1fr; }
+  .settings-section:first-child { grid-row: auto; }
+  .global-search { width: min(270px,29vw); }
+}
+
+@media (max-width: 960px) {
+  .sidebar { width: 276px; transform: translateX(-102%); box-shadow: var(--shadow-md); transition: transform .22s var(--ease); }
+  .sidebar-open .sidebar { transform: translateX(0); }
+  .sidebar-backdrop { position: fixed; z-index: 45; inset: 0; display: block; visibility: hidden; padding: 0; opacity: 0; background: rgb(13 28 23 / 38%); border: 0; transition: opacity .2s ease, visibility .2s ease; }
+  .sidebar-open .sidebar-backdrop { visibility: visible; opacity: 1; }
+  .app-main { margin-left: 0; }
+  .menu-button, .sidebar-close { display: inline-grid; }
+  .global-search { width: min(320px,38vw); }
+}
+
+@media (max-width: 760px) {
+  .topbar { min-height: 64px; padding-inline: 14px; }
+  .topbar-end { gap: 4px; }
+  .global-search { display: none; }
+  .nepal-time { min-width: 76px; padding: 0 5px; }
+  .profile-button, .icon-button { width: 36px; height: 36px; }
+  .demo-notice { margin: 12px 14px 0; }
+  .workspace { padding: 20px 14px 36px; }
+  .page-header { align-items: stretch; flex-direction: column; margin-bottom: 17px; }
+  .page-header-copy h2 { font-size: 27px; }
+  .page-actions { width: 100%; }
+  .page-actions .button { flex: 1; }
+  .metric-grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 9px; }
+  .metric-card { padding: 13px; }
+  .metric-icon { width: 34px; height: 34px; }
+  .metric-value { font-size: 20px; }
+  .attendance-summary { grid-template-columns: 1fr; }
+  .report-grid, .device-grid { grid-template-columns: 1fr; }
+  .principle-grid { grid-template-columns: 1fr; }
+  .payroll-banner { grid-template-columns: auto 1fr; }
+  .payroll-banner-actions { grid-column: 1 / -1; justify-content: space-between; }
+  .toolbar { align-items: stretch; flex-direction: column; }
+  .toolbar-start { align-items: stretch; flex-direction: column; }
+  .search-field { width: 100%; min-width: 0; max-width: none; }
+  .filter-control { width: 100%; }
+  .tabs { width: 100%; overflow-x: auto; }
+  .tab { flex: 0 0 auto; }
+  .form-grid.two-columns, .detail-grid { grid-template-columns: 1fr; }
+  .field.full-width { grid-column: auto; }
+  .modal-layer { align-items: end; padding: 0; }
+  .modal { width: 100%; max-height: 92vh; border-radius: 18px 18px 0 0; }
+  .modal-sm, .modal-lg { width: 100%; }
+  .command-menu { padding: 7vh 12px 12px; }
+  .data-table { min-width: 720px; }
+  .quick-actions { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+
+@media (max-width: 480px) {
+  .brand-area { min-height: 64px; }
+  .page-heading p, .nepal-time { display: none; }
+  .page-heading h1 { font-size: 18px; }
+  .demo-notice { align-items: flex-start; }
+  .metric-grid { grid-template-columns: 1fr; }
+  .metric-card { align-items: center; }
+  .page-actions { display: grid; grid-template-columns: 1fr; }
+  .quick-actions { grid-template-columns: 1fr 1fr; }
+  .org-count { display: none; }
+  .org-row { grid-template-columns: auto minmax(0,1fr) auto; }
+  .payroll-banner { padding: 16px; }
+  .payroll-banner h2 { font-size: 21px; }
+  .payroll-banner-actions { align-items: stretch; flex-direction: column; }
+  .form-actions, .modal-footer { display: grid; grid-template-columns: 1fr; }
+  .form-actions .button, .modal-footer .button { width: 100%; }
+  .toast-region { right: 12px; bottom: 12px; width: calc(100vw - 24px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
+
+@media print {
+  .sidebar, .topbar, .demo-notice, .page-actions, .toolbar, .pagination, .table-actions, .sidebar-backdrop { display: none !important; }
+  .app-main { margin: 0; }
+  .workspace { max-width: none; padding: 0; }
+  .panel, .metric-card, .report-card { box-shadow: none; break-inside: avoid; }
+  body { background: #fff; }
+}
+
+/* Applied by enhancements.js so the chart remains compatible with strict CSP. */
+.donut.p-0 { --progress: 0deg !important; } .donut.p-5 { --progress: 18deg !important; } .donut.p-10 { --progress: 36deg !important; }
+.donut.p-15 { --progress: 54deg !important; } .donut.p-20 { --progress: 72deg !important; } .donut.p-25 { --progress: 90deg !important; }
+.donut.p-30 { --progress: 108deg !important; } .donut.p-35 { --progress: 126deg !important; } .donut.p-40 { --progress: 144deg !important; }
+.donut.p-45 { --progress: 162deg !important; } .donut.p-50 { --progress: 180deg !important; } .donut.p-55 { --progress: 198deg !important; }
+.donut.p-60 { --progress: 216deg !important; } .donut.p-65 { --progress: 234deg !important; } .donut.p-70 { --progress: 252deg !important; }
+.donut.p-75 { --progress: 270deg !important; } .donut.p-80 { --progress: 288deg !important; } .donut.p-85 { --progress: 306deg !important; }
+.donut.p-90 { --progress: 324deg !important; } .donut.p-95 { --progress: 342deg !important; } .donut.p-100 { --progress: 360deg !important; }
