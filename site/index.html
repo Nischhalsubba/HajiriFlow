@@ -3,55 +3,47 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#174f42">
-  <meta name="description" content="HajiriFlow workforce attendance, leave, reporting, device, and payroll workspace.">
+  <meta name="theme-color" content="#0b1220">
+  <meta name="description" content="HajiriFlow is a dynamic workforce attendance, leave, device, reporting, and payroll workspace.">
   <title>HajiriFlow</title>
-  <link rel="icon" href="/assets/favicon.svg?v=20260803-2" type="image/svg+xml">
-  <link rel="stylesheet" href="/assets/styles.css?v=20260803-2">
-  <link rel="stylesheet" href="/assets/styles-components.css?v=20260803-2">
-  <link rel="stylesheet" href="/assets/styles-responsive.css?v=20260803-2">
-  <script src="/assets/core.js?v=20260803-2" defer></script>
-  <script src="/assets/views-workforce.js?v=20260803-2" defer></script>
-  <script src="/assets/views-operations.js?v=20260803-2" defer></script>
-  <script src="/assets/ui-core.js?v=20260803-2" defer></script>
-  <script src="/assets/forms.js?v=20260803-2" defer></script>
-  <script src="/assets/app.js?v=20260803-2" defer></script>
-  <script src="/assets/enhancements.js?v=20260803-2" defer></script>
+  <link rel="icon" href="/assets/favicon.svg?v=20260803-3" type="image/svg+xml">
+  <link rel="stylesheet" href="/assets/hajiriflow-v3.css?v=20260803-3">
+  <script src="/assets/demo-engine.js?v=20260803-3" defer></script>
+  <script src="/assets/app-v3.js?v=20260803-3" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#workspace">Skip to workspace</a>
 
-  <div class="app-shell">
+  <div class="app-shell" id="app-shell">
     <aside class="sidebar" id="sidebar" aria-label="Primary navigation">
-      <div class="brand-area">
+      <div class="brand-block">
         <a class="brand" href="#overview" aria-label="HajiriFlow overview">
-          <span class="brand-mark" aria-hidden="true">H</span>
-          <span class="brand-copy">
+          <span class="brand-symbol" aria-hidden="true">
+            <svg viewBox="0 0 28 28"><path d="M6 5v18M22 5v18M6 14h16"/></svg>
+          </span>
+          <span class="brand-wordmark">
             <strong>HajiriFlow</strong>
-            <small>Workforce operations</small>
+            <small>Workforce intelligence</small>
           </span>
         </a>
-        <button class="icon-button sidebar-close" type="button" data-close-sidebar aria-label="Close navigation"></button>
+        <button class="icon-button sidebar-close" type="button" data-close-sidebar aria-label="Close navigation">
+          <span aria-hidden="true">×</span>
+        </button>
       </div>
 
+      <div class="workspace-card" id="workspace-card" aria-live="polite"></div>
       <nav class="sidebar-nav" id="primary-nav"></nav>
 
       <div class="sidebar-footer">
-        <button class="workspace-switcher" type="button" data-action="workspace-menu">
-          <span class="workspace-avatar">HF</span>
-          <span>
-            <strong>HajiriFlow Demo</strong>
-            <small>Prototype workspace</small>
+        <div class="connection-card" id="connection-card"></div>
+        <button class="user-card" type="button" data-action="profile-menu" aria-label="Open profile menu">
+          <span class="user-avatar">NS</span>
+          <span class="user-copy">
+            <strong>Nischhal Subba</strong>
+            <small>Workspace administrator</small>
           </span>
           <span class="chevron" aria-hidden="true">⌄</span>
         </button>
-        <div class="environment-status">
-          <span class="status-dot is-online" aria-hidden="true"></span>
-          <span>
-            <strong>Frontend online</strong>
-            <small>Demo data stored locally</small>
-          </span>
-        </div>
       </div>
     </aside>
 
@@ -59,51 +51,46 @@
 
     <div class="app-main">
       <header class="topbar">
-        <div class="topbar-start">
-          <button class="icon-button menu-button" type="button" data-open-sidebar aria-label="Open navigation"></button>
+        <div class="topbar-left">
+          <button class="icon-button menu-button" type="button" data-open-sidebar aria-label="Open navigation">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+          </button>
           <div class="page-heading">
-            <p id="page-kicker">Workspace</p>
+            <div class="breadcrumb" id="page-kicker">Workspace</div>
             <h1 id="page-title">Overview</h1>
           </div>
         </div>
 
-        <div class="topbar-end">
-          <label class="global-search" for="global-search">
-            <span class="search-icon" aria-hidden="true"></span>
-            <input id="global-search" type="search" autocomplete="off" placeholder="Search this page">
-            <kbd>/</kbd>
-          </label>
-          <div class="nepal-time" aria-live="polite">
+        <div class="topbar-right">
+          <button class="search-trigger" type="button" data-action="open-command-menu">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+            <span>Search or jump to…</span>
+            <kbd>⌘K</kbd>
+          </button>
+          <div class="live-clock" aria-live="polite">
             <span id="nepal-date">Nepal</span>
             <strong id="nepal-time">--:--</strong>
           </div>
-          <button class="icon-button notification-button" type="button" data-action="notifications" aria-label="Open notifications">
-            <span class="notification-count">3</span>
+          <button class="icon-button" type="button" data-action="notifications" aria-label="Open notifications">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-8 13h2"/></svg>
+            <span class="notification-badge" id="notification-count">0</span>
           </button>
-          <button class="profile-button" type="button" data-action="profile-menu" aria-label="Open profile menu">
-            <span>NS</span>
-          </button>
+          <button class="avatar-button" type="button" data-action="profile-menu" aria-label="Open profile menu">NS</button>
         </div>
       </header>
 
-      <div class="demo-notice" id="demo-notice">
-        <span class="demo-notice-icon" aria-hidden="true"></span>
-        <p><strong>Interactive prototype:</strong> changes are saved in this browser. Backend and device connections are not active yet.</p>
-        <button type="button" data-action="dismiss-demo-notice" aria-label="Dismiss notice">×</button>
-      </div>
-
-      <main class="workspace" id="workspace" tabindex="-1"></main>
+      <main class="workspace" id="workspace" tabindex="-1" aria-live="polite"></main>
     </div>
   </div>
 
-  <div class="command-menu" id="command-menu" hidden>
-    <div class="command-dialog" role="dialog" aria-modal="true" aria-labelledby="command-title">
-      <div class="command-search-row">
-        <span class="search-icon" aria-hidden="true"></span>
-        <input id="command-search" type="search" placeholder="Jump to a page or action">
+  <div class="command-layer" id="command-layer" hidden>
+    <div class="command-panel" role="dialog" aria-modal="true" aria-labelledby="command-title">
+      <div class="command-input-row">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+        <input id="command-input" type="search" autocomplete="off" placeholder="Search employees, pages, or actions">
         <kbd>Esc</kbd>
       </div>
-      <div class="command-results" id="command-results" aria-labelledby="command-title"></div>
+      <div class="command-results" id="command-results"></div>
     </div>
   </div>
 
