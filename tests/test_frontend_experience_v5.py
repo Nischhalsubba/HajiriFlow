@@ -31,23 +31,21 @@ def test_skeleton_loading_has_real_lifecycle_and_accessibility() -> None:
     assert "hajiriflow-shimmer" in CSS
 
 
-def test_people_media_uses_open_licensed_deterministic_avatars() -> None:
-    assert "https://api.dicebear.com/10.x/notionists-neutral/svg" in MEDIA
-    assert "URLSearchParams" in MEDIA
+def test_people_media_uses_free_licensed_photographic_portraits() -> None:
+    assert "https://images.unsplash.com/" in MEDIA
+    assert "PORTRAIT_IDS" in MEDIA
     assert 'image.loading = element.matches' in MEDIA
     assert 'image.decoding = "async"' in MEDIA
     assert "is-error" in MEDIA
     assert ".open-avatar" in CSS
 
 
-def test_dicebear_v10_options_and_retry_are_valid() -> None:
-    assert 'borderRadius: "50"' in MEDIA
-    assert 'params.set("backgroundColorFill", "solid")' in MEDIA
-    assert 'avatarUrl(name, true)' in MEDIA
-    assert "let retried = false" in MEDIA
-    assert 'radius: "50"' not in MEDIA
-    assert 'backgroundType' not in MEDIA
-    assert "20260803-6" in INDEX
+def test_photographic_portrait_retry_and_photo_storage_are_valid() -> None:
+    assert 'portraitUrl(name, 11)' in MEDIA
+    assert "let attempt = 0" in MEDIA
+    assert "hajiriflow_employee_photos_v1" in MEDIA
+    assert "api.dicebear.com" not in MEDIA
+    assert "20260803-7" in INDEX
 
 
 def test_motion_is_version_pinned_and_reduced_motion_safe() -> None:
@@ -60,7 +58,7 @@ def test_motion_is_version_pinned_and_reduced_motion_safe() -> None:
 
 
 def test_external_origins_are_limited_by_csp() -> None:
-    assert "img-src 'self' data: https://api.dicebear.com" in NETLIFY
+    assert "img-src 'self' data: https://images.unsplash.com" in NETLIFY
     assert "script-src 'self' https://cdn.jsdelivr.net" in NETLIFY
     assert "unsafe-inline" not in NETLIFY
     assert "unsafe-eval" not in NETLIFY
