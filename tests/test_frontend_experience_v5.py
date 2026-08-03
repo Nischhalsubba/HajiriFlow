@@ -41,7 +41,8 @@ def test_people_media_uses_open_licensed_deterministic_avatars() -> None:
 
 
 def test_motion_is_version_pinned_and_reduced_motion_safe() -> None:
-    assert "https://cdn.jsdelivr.net/npm/motion@12.42.1/+esm" in MOTION
+    assert "https://cdn.jsdelivr.net/npm/motion@12.42.1/dist/motion.js" in INDEX
+    assert "window.Motion" in MOTION
     assert "animate" in MOTION
     assert "stagger" in MOTION
     assert "prefers-reduced-motion: reduce" in MOTION
