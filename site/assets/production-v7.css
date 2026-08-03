@@ -1,0 +1,86 @@
+/* Production presentation layer: photographic portraits, photo management, and live-safe controls. */
+
+.open-avatar.is-photographic {
+  background: linear-gradient(145deg, #e8edf5, #d7dee9);
+}
+
+.open-avatar.is-photographic img {
+  object-position: 50% 36%;
+  filter: saturate(.94) contrast(1.02);
+}
+
+.person-avatar.open-avatar.is-photographic {
+  width: 46px;
+  height: 46px;
+  min-width: 46px;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px var(--border), 0 4px 12px rgba(16, 24, 40, .10);
+}
+
+.person-avatar.large.open-avatar.is-photographic {
+  width: 96px;
+  height: 96px;
+  min-width: 96px;
+}
+
+.person-avatar.medium.open-avatar.is-photographic {
+  width: 64px;
+  height: 64px;
+  min-width: 64px;
+}
+
+.avatar-button.open-avatar.is-photographic,
+.user-avatar.open-avatar.is-photographic {
+  border: 2px solid rgba(255, 255, 255, .78);
+  box-shadow: 0 0 0 1px rgba(16, 24, 40, .22);
+}
+
+.profile-identity {
+  position: relative;
+  align-items: center;
+}
+
+.profile-photo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.profile-photo-actions .button {
+  min-height: 40px;
+}
+
+[data-environment="production"] [data-action="regenerate-demo"],
+[data-environment="production"] [data-action="confirm-regenerate"],
+[data-environment="production"] [data-command-action="regenerate-demo"] {
+  display: none !important;
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+@media (max-width: 820px) {
+  .profile-identity {
+    align-items: flex-start;
+  }
+
+  .profile-photo-actions {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .profile-photo-actions .button {
+    flex: 1 1 150px;
+  }
+}
