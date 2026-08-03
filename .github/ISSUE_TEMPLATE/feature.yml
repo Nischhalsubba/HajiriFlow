@@ -1,0 +1,37 @@
+name: Baseline feature
+description: Implement or refine a HajiriFlow baseline capability
+title: "[Feature] "
+labels: []
+body:
+  - type: textarea
+    id: outcome
+    attributes:
+      label: User outcome
+      description: Describe what the user must be able to accomplish.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: Include roles, screens/APIs, data, exports, and background jobs.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Use testable Given/When/Then statements.
+    validations:
+      required: true
+  - type: textarea
+    id: security
+    attributes:
+      label: Security, privacy, and audit
+      description: State permissions, sensitive fields, audit events, and failure behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies and open decisions
