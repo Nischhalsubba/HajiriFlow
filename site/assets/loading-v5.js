@@ -26,23 +26,27 @@
 
     if (!descriptor?.get || !descriptor?.set) return;
 
-    Object.defineProperty(document, "title", {
-      configurable: true,
-      enumerable: descriptor.enumerable,
-      get() {
-        return descriptor.get.call(document);
-      },
-      set(value) {
-        const nextTitle = String(value);
-        if (descriptor.get.call(document) !== nextTitle) {
-          descriptor.set.call(document, nextTitle);
-        }
-      },
-    });
-    Object.defineProperty(document, "__hajiriFlowTitleGuard", {
-      configurable: false,
-      value: true,
-    });
+    try {
+      Object.defineProperty(document, "title", {
+        configurable: true,
+        enumerable: descriptor.enumerable,
+        get() {
+          return descriptor.get.call(document);
+        },
+        set(value) {
+          const nextTitle = String(value);
+          if (descriptor.get.call(document) !== nextTitle) {
+            descriptor.set.call(document, nextTitle);
+          }
+        },
+      });
+      Object.defineProperty(document, "__hajiriFlowTitleGuard", {
+        configurable: false,
+        value: true,
+      });
+    } catch {
+      // A browser that does not allow an own title property can continue without the guard.
+    }
   }
 
   function scheduleFailureFallback() {
