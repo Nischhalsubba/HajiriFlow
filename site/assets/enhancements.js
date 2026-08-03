@@ -8,6 +8,20 @@ function enhanceAttendanceChart() {
   donut.dataset.enhanced = "true";
 }
 
+function simulateDeviceAction(id, message, sync) {
+  const device = state.devices.find((item) => item.id === Number(id));
+  if (!device) return;
+  toast(`${device.name}: operation started.`, "info");
+  setTimeout(() => {
+    device.status = "Online";
+    if (sync) device.lastSync = "just now";
+    addActivity("devices", message, device.name);
+    saveState();
+    render();
+    toast(`${device.name}: ${message.toLowerCase()}.`);
+  }, 650);
+}
+
 const chartObserver = new MutationObserver(enhanceAttendanceChart);
 chartObserver.observe(document.getElementById("workspace"), { childList: true, subtree: true });
 enhanceAttendanceChart();
