@@ -6,14 +6,18 @@
   <meta name="theme-color" content="#101828">
   <meta name="description" content="HajiriFlow is a dynamic workforce attendance, leave, device, reporting, and payroll workspace.">
   <title>HajiriFlow</title>
-  <link rel="icon" href="/assets/favicon.svg?v=20260803-4" type="image/svg+xml">
-  <link rel="stylesheet" href="/assets/hajiriflow-v3.css?v=20260803-4">
-  <link rel="stylesheet" href="/assets/hajiriflow-v4.css?v=20260803-4">
-  <script src="/assets/demo-engine.js?v=20260803-4" defer></script>
-  <script src="/assets/app-v3.js?v=20260803-4" defer></script>
-  <script src="/assets/shell-v4.js?v=20260803-4" defer></script>
+  <link rel="icon" href="/assets/favicon.svg?v=20260803-5" type="image/svg+xml">
+  <link rel="stylesheet" href="/assets/hajiriflow-v3.css?v=20260803-5">
+  <link rel="stylesheet" href="/assets/hajiriflow-v4.css?v=20260803-5">
+  <link rel="stylesheet" href="/assets/experience-v5.css?v=20260803-5">
+  <script src="/assets/demo-engine.js?v=20260803-5" defer></script>
+  <script src="/assets/loading-v5.js?v=20260803-5" defer></script>
+  <script src="/assets/app-v3.js?v=20260803-5" defer></script>
+  <script src="/assets/shell-v4.js?v=20260803-5" defer></script>
+  <script src="/assets/media-v5.js?v=20260803-5" defer></script>
+  <script type="module" src="/assets/motion-v5.js?v=20260803-5"></script>
 </head>
-<body>
+<body class="app-is-loading">
   <a class="skip-link" href="#workspace">Skip to workspace</a>
 
   <div class="app-shell" id="app-shell">
@@ -81,7 +85,25 @@
         </div>
       </header>
 
-      <main class="workspace" id="workspace" tabindex="-1" aria-live="polite"></main>
+      <div class="app-skeleton" id="app-skeleton" aria-hidden="true" data-loading-kind="initial">
+        <section class="skeleton-heading">
+          <span class="skeleton-line is-eyebrow"></span>
+          <span class="skeleton-line is-title"></span>
+          <span class="skeleton-line is-copy"></span>
+        </section>
+        <section class="skeleton-metrics">
+          <article class="skeleton-metric"><span class="skeleton-circle"></span><span class="skeleton-copy"><span class="skeleton-line is-short"></span><span class="skeleton-line"></span></span></article>
+          <article class="skeleton-metric"><span class="skeleton-circle"></span><span class="skeleton-copy"><span class="skeleton-line is-short"></span><span class="skeleton-line"></span></span></article>
+          <article class="skeleton-metric"><span class="skeleton-circle"></span><span class="skeleton-copy"><span class="skeleton-line is-short"></span><span class="skeleton-line"></span></span></article>
+          <article class="skeleton-metric"><span class="skeleton-circle"></span><span class="skeleton-copy"><span class="skeleton-line is-short"></span><span class="skeleton-line"></span></span></article>
+        </section>
+        <section class="skeleton-grid">
+          <article class="skeleton-panel is-tall"><span class="skeleton-line is-short"></span><span class="skeleton-block"></span></article>
+          <article class="skeleton-panel"><span class="skeleton-line is-short"></span><span class="skeleton-line"></span><span class="skeleton-line"></span><span class="skeleton-line"></span><span class="skeleton-line is-short"></span></article>
+        </section>
+      </div>
+
+      <main class="workspace" id="workspace" tabindex="-1" aria-live="polite" aria-busy="true"></main>
     </div>
   </div>
 
