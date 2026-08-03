@@ -10,6 +10,7 @@ SENSITIVE_KEYS = frozenset(
         "biometric_template",
         "citizenship_number",
         "communication_secret",
+        "csrf_token",
         "device_password",
         "fingerprint",
         "fingerprint_data",
