@@ -40,6 +40,16 @@ def test_people_media_uses_open_licensed_deterministic_avatars() -> None:
     assert ".open-avatar" in CSS
 
 
+def test_dicebear_v10_options_and_retry_are_valid() -> None:
+    assert 'borderRadius: "50"' in MEDIA
+    assert 'params.set("backgroundColorFill", "solid")' in MEDIA
+    assert 'avatarUrl(name, true)' in MEDIA
+    assert "let retried = false" in MEDIA
+    assert 'radius: "50"' not in MEDIA
+    assert 'backgroundType' not in MEDIA
+    assert "20260803-6" in INDEX
+
+
 def test_motion_is_version_pinned_and_reduced_motion_safe() -> None:
     assert "https://cdn.jsdelivr.net/npm/motion@12.42.1/dist/motion.js" in INDEX
     assert "window.Motion" in MOTION
