@@ -15,22 +15,36 @@ services:
       timeout: 5s
       retries: 10
 
-  web:
+  migrate:
     build: .
-    env_file: .env
-    ports:
-      - "8000:8000"
+    command: ["alembic", "upgrade", "head"]
+    environment:
+      HAJIRIFLOW_DATABASE_URL: postgresql+psycopg://hajiriflow:hajiriflow@db:5432/hajiriflow
+      HAJIRIFLOW_SESSION_SECRET: local-compose-secret-that-is-longer-than-thirty-two-characters
     depends_on:
       db:
         condition: service_healthy
+
+  web:
+    build: .
+    env_file: .env
+    environment:
+      HAJIRIFLOW_DATABASE_URL: postgresql+psycopg://hajiriflow:hajiriflow@db:5432/hajiriflow
+    ports:
+      - "8000:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
 
   worker:
     build: .
     command: ["python", "-m", "hajiriflow.worker"]
     env_file: .env
+    environment:
+      HAJIRIFLOW_DATABASE_URL: postgresql+psycopg://hajiriflow:hajiriflow@db:5432/hajiriflow
     depends_on:
-      db:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
 
 volumes:
   hajiriflow_postgres:
