@@ -1,52 +1,42 @@
 # Roadmap
 
-## Phase 0: Foundation
+The complete accepted baseline is documented in [PRODUCT_SCOPE.md](PRODUCT_SCOPE.md) and tracked in [FEATURE_MATRIX.md](FEATURE_MATRIX.md). Delivery follows [IMPLEMENTATION_SEQUENCE.md](IMPLEMENTATION_SEQUENCE.md).
 
-- Application and worker processes
-- Configuration validation
-- PostgreSQL development environment
-- CI, linting, tests, and health checks
-- Architecture and security documentation
+## Foundation: complete
 
-## Phase 1: Identity and organisation
+- FastAPI web process and separate worker process.
+- Configuration validation.
+- PostgreSQL development environment.
+- CI, linting, tests, health, and readiness checks.
+- Architecture principles and production safety constraints.
 
-- Database migrations
-- Administrators, managers, viewers, employees
-- Deny-by-default permission matrix
-- Organisation hierarchy and employee records
-- Secure sessions, CSRF protection, login throttling, audit events
+## Current milestone: persistence, identity, and authorization
 
-## Phase 2: Devices and raw attendance
+- Versioned database migrations.
+- PostgreSQL pool and transaction lifecycle.
+- Users, roles, permissions, scoped user-role assignments, sessions, and audit events.
+- Login, logout, password change, account lifecycle, throttling, and CSRF.
+- Deny-by-default page, API, export, object, and job authorization tests.
 
-- Device registry stored in PostgreSQL
-- ZKTeco adapter behind a vendor-neutral interface
-- Test connection and diagnostics
-- Idempotent, distributed-locked pull jobs
-- Immutable raw punch storage and pull-session audit
+## Remaining baseline milestones
 
-## Phase 3: Attendance engine
-
-- Nepal timezone boundaries
-- Shift and grace rules
-- Punch deduplication
-- Daily settlement and correction workflow
-- Holidays, weekends, leave, and kaaj integration
-
-## Phase 4: Reports
-
-- Daily attendance
-- Monthly attendance
-- Absent and department reports
-- Hajiri register
-- Excel/PDF exports with permission checks
-
-## Phase 5: Payroll
-
-- Locked attendance periods
-- Versioned earning and deduction rules
-- Payroll preview, approval, posting, and reversal
-- Payslips and bank exports
+1. Organization, employees, shifts, and company settings.
+2. BS calendar, holidays, leave, and field duty.
+3. Device platform, scheduler, immutable raw evidence, and device identities.
+4. Device sync, enrollment, migration, archive, and restore.
+5. Manual corrections and the shared attendance engine.
+6. Attendance reports and employee self-service.
+7. Payroll policy, processing, payslips, and annual/tax outputs.
+8. Production operations, monitoring, backup, restore, and security review.
 
 ## Release gate
 
-Production deployment requires threat modelling, backup restore testing, permission tests, device integration tests, and payroll reconciliation against a manually verified sample period.
+Production deployment requires:
+
+- a threat model and authorization review;
+- tested backup restoration;
+- permission tests for pages, APIs, exports, and worker actions;
+- device integration tests against supported hardware;
+- attendance reconciliation over a manually verified period;
+- payroll reconciliation over a manually verified sample;
+- migration, rollback, monitoring, and incident runbooks.
