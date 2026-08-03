@@ -35,14 +35,18 @@
     return element.textContent?.trim() || "HajiriFlow user";
   }
 
-  function avatarUrl(seed) {
+  function avatarUrl(seed, simplified = false) {
     const params = new URLSearchParams({
       seed,
       size: "160",
-      radius: "50",
-      backgroundColor: "dbeafe,e0e7ff,ccfbf1,fef3c7,fce7f3",
-      backgroundType: "solid",
+      borderRadius: "50",
     });
+
+    if (!simplified) {
+      params.set("backgroundColor", "dbeafe,e0e7ff,ccfbf1,fef3c7,fce7f3");
+      params.set("backgroundColorFill", "solid");
+    }
+
     return `${AVATAR_ENDPOINT}?${params.toString()}`;
   }
 
@@ -52,6 +56,7 @@
     const name = personName(element);
     const fallback = initials(name);
     const image = new Image();
+    let retried = false;
 
     element.dataset.openMedia = "true";
     element.dataset.avatarName = name;
@@ -69,13 +74,19 @@
       element.classList.remove("is-loading", "is-error");
       element.classList.add("is-loaded");
       window.dispatchEvent(new CustomEvent("hajiriflow:avatar-loaded", { detail: { element, image } }));
-    }, { once: true });
+    });
 
     image.addEventListener("error", () => {
+      if (!retried) {
+        retried = true;
+        image.src = avatarUrl(name, true);
+        return;
+      }
+
       image.remove();
       element.classList.remove("is-loading");
       element.classList.add("is-error");
-    }, { once: true });
+    });
 
     image.src = avatarUrl(name);
     element.append(image);
