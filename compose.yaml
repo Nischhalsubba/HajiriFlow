@@ -1,0 +1,36 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: hajiriflow
+      POSTGRES_USER: hajiriflow
+      POSTGRES_PASSWORD: hajiriflow
+    ports:
+      - "5432:5432"
+    volumes:
+      - hajiriflow_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hajiriflow -d hajiriflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build: .
+    env_file: .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  worker:
+    build: .
+    command: ["python", "-m", "hajiriflow.worker"]
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  hajiriflow_postgres:
