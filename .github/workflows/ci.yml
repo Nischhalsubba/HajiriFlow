@@ -19,4 +19,9 @@ jobs:
           cache: pip
       - run: pip install -e '.[dev]'
       - run: ruff check .
+      - name: Validate frontend JavaScript
+        run: |
+          for file in site/assets/*.js; do
+            node --check "$file"
+          done
       - run: pytest --cov=hajiriflow --cov-report=term-missing

@@ -3,274 +3,111 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#0b6b57">
-  <meta name="description" content="HajiriFlow is a Nepal-ready attendance, leave, reporting, and payroll platform.">
+  <meta name="theme-color" content="#174f42">
+  <meta name="description" content="HajiriFlow workforce attendance, leave, reporting, device, and payroll workspace.">
   <title>HajiriFlow</title>
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/assets/styles.css">
+  <link rel="stylesheet" href="/assets/styles-components.css">
+  <link rel="stylesheet" href="/assets/styles-responsive.css">
+  <script src="/assets/core.js" defer></script>
+  <script src="/assets/views-workforce.js" defer></script>
+  <script src="/assets/views-operations.js" defer></script>
+  <script src="/assets/ui-core.js" defer></script>
+  <script src="/assets/forms.js" defer></script>
   <script src="/assets/app.js" defer></script>
+  <script src="/assets/enhancements.js" defer></script>
 </head>
 <body>
-  <a class="skip-link" href="#main-content">Skip to content</a>
+  <a class="skip-link" href="#workspace">Skip to workspace</a>
 
   <div class="app-shell">
     <aside class="sidebar" id="sidebar" aria-label="Primary navigation">
-      <div class="brand-row">
-        <a class="brand" href="/" aria-label="HajiriFlow home">
+      <div class="brand-area">
+        <a class="brand" href="#overview" aria-label="HajiriFlow overview">
           <span class="brand-mark" aria-hidden="true">H</span>
-          <span>
+          <span class="brand-copy">
             <strong>HajiriFlow</strong>
             <small>Workforce operations</small>
           </span>
         </a>
-        <button class="icon-button sidebar-close" type="button" data-close-sidebar aria-label="Close navigation">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
-        </button>
+        <button class="icon-button sidebar-close" type="button" data-close-sidebar aria-label="Close navigation"></button>
       </div>
 
-      <nav class="nav-list">
-        <a class="nav-item is-active" href="#overview" aria-current="page">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13h6V4H4v9Zm0 7h6v-4H4v4Zm10 0h6v-9h-6v9Zm0-16v4h6V4h-6Z"/></svg>
-          <span>Overview</span>
-        </a>
-        <a class="nav-item" href="#attendance">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3v3m8-3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v14H4V6a1 1 0 0 1 1-1Zm3 8h3v3H8v-3Z"/></svg>
-          <span>Attendance</span>
-          <span class="nav-badge">Planned</span>
-        </a>
-        <a class="nav-item" href="#employees">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 20v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2m6.5-10a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm7.5 1a3 3 0 0 1 3 3v6m-4-17a4 4 0 0 1 0 7"/></svg>
-          <span>Employees</span>
-          <span class="nav-badge">Planned</span>
-        </a>
-        <a class="nav-item" href="#leave">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18H6zM9 7h6M9 11h6M9 15h4"/></svg>
-          <span>Leave</span>
-          <span class="nav-badge">Planned</span>
-        </a>
-        <a class="nav-item" href="#reports">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10m5 10V4m5 16v-7m5 7V7"/></svg>
-          <span>Reports</span>
-          <span class="nav-badge">Planned</span>
-        </a>
-        <a class="nav-item" href="#devices">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 7h6M9 17h6"/></svg>
-          <span>Devices</span>
-          <span class="nav-badge">Planned</span>
-        </a>
-        <a class="nav-item" href="#payroll">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v12H4zM7 7V5h10v2m-8 6h6m-3-3v6"/></svg>
-          <span>Payroll</span>
-          <span class="nav-badge">Planned</span>
-        </a>
-      </nav>
+      <nav class="sidebar-nav" id="primary-nav"></nav>
 
       <div class="sidebar-footer">
-        <div class="environment-card">
-          <span class="status-dot" aria-hidden="true"></span>
-          <div>
+        <button class="workspace-switcher" type="button" data-action="workspace-menu">
+          <span class="workspace-avatar">HF</span>
+          <span>
+            <strong>HajiriFlow Demo</strong>
+            <small>Prototype workspace</small>
+          </span>
+          <span class="chevron" aria-hidden="true">⌄</span>
+        </button>
+        <div class="environment-status">
+          <span class="status-dot is-online" aria-hidden="true"></span>
+          <span>
             <strong>Frontend online</strong>
-            <small>Netlify production</small>
-          </div>
+            <small>Demo data stored locally</small>
+          </span>
         </div>
-        <a class="nav-item nav-item-secondary" href="https://github.com/Nischhalsubba/HajiriFlow" target="_blank" rel="noreferrer">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 19c-4 1.5-4-2.5-6-3m12 6v-3.5c0-1 .1-1.4-.5-2 3-.3 6.1-1.5 6.1-6.5A5 5 0 0 0 19.3 6 4.7 4.7 0 0 0 19.2 2S18 1.6 15 3.5a13.4 13.4 0 0 0-6 0C6 1.6 4.8 2 4.8 2A4.7 4.7 0 0 0 4.7 6a5 5 0 0 0-1.3 4c0 5 3.1 6.2 6.1 6.5-.4.4-.6.9-.6 1.8V22"/></svg>
-          <span>Repository</span>
-        </a>
       </div>
     </aside>
 
-    <div class="sidebar-backdrop" data-close-sidebar aria-hidden="true"></div>
+    <button class="sidebar-backdrop" type="button" data-close-sidebar aria-label="Close navigation"></button>
 
-    <main class="main-content" id="main-content">
+    <div class="app-main">
       <header class="topbar">
-        <button class="icon-button menu-button" type="button" data-open-sidebar aria-label="Open navigation">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
-        </button>
-        <div>
-          <p class="eyebrow">Foundation workspace</p>
-          <h1>Overview</h1>
+        <div class="topbar-start">
+          <button class="icon-button menu-button" type="button" data-open-sidebar aria-label="Open navigation"></button>
+          <div class="page-heading">
+            <p id="page-kicker">Workspace</p>
+            <h1 id="page-title">Overview</h1>
+          </div>
         </div>
-        <div class="topbar-actions">
+
+        <div class="topbar-end">
+          <label class="global-search" for="global-search">
+            <span class="search-icon" aria-hidden="true"></span>
+            <input id="global-search" type="search" autocomplete="off" placeholder="Search this page">
+            <kbd>/</kbd>
+          </label>
           <div class="nepal-time" aria-live="polite">
-            <span>Nepal time</span>
+            <span id="nepal-date">Nepal</span>
             <strong id="nepal-time">--:--</strong>
           </div>
-          <div class="avatar" aria-label="Project owner">NS</div>
+          <button class="icon-button notification-button" type="button" data-action="notifications" aria-label="Open notifications">
+            <span class="notification-count">3</span>
+          </button>
+          <button class="profile-button" type="button" data-action="profile-menu" aria-label="Open profile menu">
+            <span>NS</span>
+          </button>
         </div>
       </header>
 
-      <div class="page-content" id="overview">
-        <section class="hero-panel" aria-labelledby="hero-title">
-          <div class="hero-copy">
-            <div class="status-pill">
-              <span class="status-dot" aria-hidden="true"></span>
-              Netlify frontend is live
-            </div>
-            <h2 id="hero-title">The HajiriFlow foundation is now visible.</h2>
-            <p>
-              This is the initial application shell for the Nepal-ready attendance, leave,
-              reporting, device, and payroll platform. Functional modules will appear here as
-              each verified milestone is completed.
-            </p>
-            <div class="hero-actions">
-              <a class="button button-primary" href="https://github.com/Nischhalsubba/HajiriFlow/issues/4" target="_blank" rel="noreferrer">View delivery tracker</a>
-              <a class="button button-secondary" href="https://github.com/Nischhalsubba/HajiriFlow" target="_blank" rel="noreferrer">Open repository</a>
-            </div>
-          </div>
-          <div class="hero-visual" aria-hidden="true">
-            <div class="visual-ring visual-ring-large"></div>
-            <div class="visual-ring visual-ring-small"></div>
-            <div class="visual-card">
-              <svg viewBox="0 0 24 24"><path d="M7 3h10v4H7zM5 7h14v14H5zM8 11h3v3H8zm5 0h3v3h-3zM8 16h3v2H8zm5 0h3v2h-3z"/></svg>
-              <strong>Attendance to payroll</strong>
-              <span>One accountable record flow</span>
-            </div>
-          </div>
-        </section>
-
-        <section class="metric-grid" aria-label="Current platform status">
-          <article class="metric-card">
-            <div class="metric-icon metric-icon-green">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>
-            </div>
-            <div>
-              <span>Deployment</span>
-              <strong>Online</strong>
-              <small>Static frontend configured</small>
-            </div>
-          </article>
-          <article class="metric-card">
-            <div class="metric-icon metric-icon-blue">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM8 9h8M8 13h5"/></svg>
-            </div>
-            <div>
-              <span>Baseline scope</span>
-              <strong>66 capabilities</strong>
-              <small>Tracked across 9 milestones</small>
-            </div>
-          </article>
-          <article class="metric-card">
-            <div class="metric-icon metric-icon-amber">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M3 12h18"/></svg>
-            </div>
-            <div>
-              <span>Current stage</span>
-              <strong>Foundation</strong>
-              <small>Identity and RBAC underway</small>
-            </div>
-          </article>
-          <article class="metric-card">
-            <div class="metric-icon metric-icon-slate">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-            </div>
-            <div>
-              <span>Business timezone</span>
-              <strong>Asia/Kathmandu</strong>
-              <small>Explicit Nepal date handling</small>
-            </div>
-          </article>
-        </section>
-
-        <div class="content-grid">
-          <section class="panel milestone-panel" aria-labelledby="milestone-title">
-            <div class="panel-header">
-              <div>
-                <p class="eyebrow">Delivery roadmap</p>
-                <h2 id="milestone-title">Baseline milestones</h2>
-              </div>
-              <span class="panel-tag">9 stages</span>
-            </div>
-            <ol class="milestone-list">
-              <li class="milestone is-active">
-                <span class="milestone-number">01</span>
-                <div>
-                  <strong>Identity and authorization</strong>
-                  <span>Migrations, accounts, sessions, RBAC, audit</span>
-                </div>
-                <span class="state state-progress">In progress</span>
-              </li>
-              <li class="milestone">
-                <span class="milestone-number">02</span>
-                <div>
-                  <strong>Organization and employees</strong>
-                  <span>Hierarchy, profiles, shifts, assignments</span>
-                </div>
-                <span class="state">Planned</span>
-              </li>
-              <li class="milestone">
-                <span class="milestone-number">03</span>
-                <div>
-                  <strong>Calendar, leave and field duty</strong>
-                  <span>BS dates, holidays, balances, approvals</span>
-                </div>
-                <span class="state">Planned</span>
-              </li>
-              <li class="milestone">
-                <span class="milestone-number">04</span>
-                <div>
-                  <strong>Device and attendance evidence</strong>
-                  <span>Worker, schedules, immutable punch ingestion</span>
-                </div>
-                <span class="state">Planned</span>
-              </li>
-            </ol>
-          </section>
-
-          <section class="panel architecture-panel" aria-labelledby="architecture-title">
-            <div class="panel-header">
-              <div>
-                <p class="eyebrow">Deployment model</p>
-                <h2 id="architecture-title">Separated by responsibility</h2>
-              </div>
-            </div>
-            <div class="architecture-flow">
-              <div class="flow-node is-live">
-                <span>Frontend</span>
-                <strong>Netlify</strong>
-                <small>Live now</small>
-              </div>
-              <span class="flow-arrow" aria-hidden="true">→</span>
-              <div class="flow-node">
-                <span>Application API</span>
-                <strong>FastAPI</strong>
-                <small>Separate host required</small>
-              </div>
-              <span class="flow-arrow" aria-hidden="true">→</span>
-              <div class="flow-node">
-                <span>Evidence store</span>
-                <strong>PostgreSQL</strong>
-                <small>Not exposed publicly</small>
-              </div>
-            </div>
-            <div class="notice">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
-              <p>
-                Biometric device pulling and payroll processing cannot run as static Netlify
-                pages. They will run in protected backend and worker services.
-              </p>
-            </div>
-          </section>
-        </div>
-
-        <section class="panel empty-state-panel" id="devices" aria-labelledby="devices-title">
-          <div class="empty-icon">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 7h6M9 17h6"/></svg>
-          </div>
-          <div>
-            <p class="eyebrow">Device workspace</p>
-            <h2 id="devices-title">No biometric devices connected yet</h2>
-            <p>Device registration, connection tests, schedules, and pull history will be introduced in the device milestone.</p>
-          </div>
-          <span class="state">Planned</span>
-        </section>
+      <div class="demo-notice" id="demo-notice">
+        <span class="demo-notice-icon" aria-hidden="true"></span>
+        <p><strong>Interactive prototype:</strong> changes are saved in this browser. Backend and device connections are not active yet.</p>
+        <button type="button" data-action="dismiss-demo-notice" aria-label="Dismiss notice">×</button>
       </div>
 
-      <footer class="footer">
-        <span>HajiriFlow foundation</span>
-        <span>Built independently for Nepal workforce operations</span>
-      </footer>
-    </main>
+      <main class="workspace" id="workspace" tabindex="-1"></main>
+    </div>
   </div>
+
+  <div class="command-menu" id="command-menu" hidden>
+    <div class="command-dialog" role="dialog" aria-modal="true" aria-labelledby="command-title">
+      <div class="command-search-row">
+        <span class="search-icon" aria-hidden="true"></span>
+        <input id="command-search" type="search" placeholder="Jump to a page or action">
+        <kbd>Esc</kbd>
+      </div>
+      <div class="command-results" id="command-results" aria-labelledby="command-title"></div>
+    </div>
+  </div>
+
+  <div class="modal-layer" id="modal-layer" hidden></div>
+  <div class="toast-region" id="toast-region" aria-live="polite" aria-atomic="true"></div>
 </body>
 </html>
