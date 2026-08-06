@@ -1,3 +1,252 @@
+<!-- interactive-readme-standard:start -->
+
+<div align="center">
+
+# HajiriFlow
+
+**Branch-aware technical guide for [`docs/interactive-readme`](https://github.com/Nischhalsubba/HajiriFlow/tree/docs/interactive-readme)**
+
+<p><img alt="branch: docs/interactive-readme" src="https://img.shields.io/static/v1?label=&message=branch%3A%20docs%2Finteractive-readme&color=5965F2&style=flat-square"> <img alt="Python" src="https://img.shields.io/static/v1?label=&message=Python&color=24292F&style=flat-square"> <img alt="Docker" src="https://img.shields.io/static/v1?label=&message=Docker&color=24292F&style=flat-square"> <img alt="Docker Compose" src="https://img.shields.io/static/v1?label=&message=Docker%20Compose&color=24292F&style=flat-square"> <img alt="JavaScript" src="https://img.shields.io/static/v1?label=&message=JavaScript&color=24292F&style=flat-square"> <img alt="CSS" src="https://img.shields.io/static/v1?label=&message=CSS&color=24292F&style=flat-square"> <img alt="HTML" src="https://img.shields.io/static/v1?label=&message=HTML&color=24292F&style=flat-square"> <img alt="docs: branch-aware" src="https://img.shields.io/static/v1?label=&message=docs%3A%20branch-aware&color=8250DF&style=flat-square"></p>
+
+<p>
+  <a href="https://github.com/Nischhalsubba/HajiriFlow/tree/docs/interactive-readme"><strong>Browse source</strong></a> ·
+  <a href="https://github.com/Nischhalsubba/HajiriFlow/issues"><strong>Issues</strong></a> ·
+  <a href="https://github.com/Nischhalsubba/HajiriFlow/codespaces/new?ref=docs%2Finteractive-readme"><strong>Open in Codespaces</strong></a>
+</p>
+
+</div>
+
+> [!IMPORTANT]
+> This guide is generated from the files actually present on `docs/interactive-readme`. It links to detected source paths, preserves project-authored notes, and avoids claiming components that were not found.
+
+## At a glance
+
+| Item | Detected value |
+|---|---|
+| Purpose | A web or interface project documented from the files currently present on this branch. |
+| Branch role | Compared with `main` |
+| Stack | Python, Docker, Docker Compose, JavaScript, CSS, HTML |
+| Manifests | pyproject.toml, Dockerfile, compose.yaml |
+| Prerequisites | Python |
+| Delivery | Dockerfile, compose.yaml, netlify.toml, GitHub Actions |
+| License | No license file detected |
+
+## Branch scope
+
+This branch differs from the default branch in the following detected paths:
+
+- [`README.md`](https://github.com/Nischhalsubba/HajiriFlow/blob/docs/interactive-readme/README.md)
+
+## Quick start
+
+```bash
+python -m venv .venv
+pip install -e .
+```
+
+### Configuration surface
+
+- `.env.example`
+
+> Never commit secrets, private keys, production credentials, customer data, or unredacted infrastructure details.
+
+## Repository map
+
+```mermaid
+flowchart TD
+    ROOT["HajiriFlow / docs/interactive-readme"]
+    ROOT --> P0[".github/"]
+    ROOT --> P1["docs/"]
+    ROOT --> P2["migrations/"]
+    ROOT --> P3["site/"]
+    ROOT --> P4["src/"]
+    ROOT --> P5["tests/"]
+    ROOT --> P6[".env.example"]
+    ROOT --> P7[".gitignore"]
+    ROOT --> P8["AGENTS.md"]
+    ROOT --> P9["alembic.ini"]
+    ROOT --> P10["compose.yaml"]
+    ROOT --> P11["CONTRIBUTING.md"]
+    ROOT --> P12["Dockerfile"]
+    ROOT --> P13["netlify.toml"]
+    ROOT --> P14["pyproject.toml"]
+    ROOT --> P15["SECURITY.md"]
+```
+
+| Responsibility | Detected source paths |
+|---|---|
+| Interface | [`site`](https://github.com/Nischhalsubba/HajiriFlow/tree/docs/interactive-readme/site), [`src`](https://github.com/Nischhalsubba/HajiriFlow/tree/docs/interactive-readme/src) |
+| Data | [`migrations`](https://github.com/Nischhalsubba/HajiriFlow/tree/docs/interactive-readme/migrations) |
+| Quality | [`tests`](https://github.com/Nischhalsubba/HajiriFlow/tree/docs/interactive-readme/tests) |
+| Documentation | [`docs`](https://github.com/Nischhalsubba/HajiriFlow/tree/docs/interactive-readme/docs) |
+| Delivery | [`.github`](https://github.com/Nischhalsubba/HajiriFlow/tree/docs/interactive-readme/.github) |
+
+## Website or application map
+
+```mermaid
+flowchart TD
+    APP["HajiriFlow"]
+    APP --> R0["site"]
+    R0 --> F0["site/index.html"]
+```
+
+## Architecture and responsibility flow
+
+```mermaid
+flowchart LR
+    USER["User / contributor"]
+    USER --> A0["Interface: site, src"]
+    A0 --> A1["Data: migrations"]
+    A1 --> A2["Quality: tests"]
+    A2 --> A3["Documentation: docs"]
+    A3 --> A4["Delivery: .github"]
+    A4 --> DELIVERY["Delivery: Dockerfile, compose.yaml, netlify.toml, GitHub Actions"]
+```
+
+<details>
+<summary><strong>Authentication and authorization flow</strong></summary>
+
+```mermaid
+flowchart LR
+    USER["User"] --> SIGNIN["Sign-in or identity step"]
+    SIGNIN --> VERIFY["Verify credentials / session"]
+    VERIFY --> AUTHORIZE["Resolve permissions"]
+    AUTHORIZE --> PROTECTED["Protected feature or data"]
+    VERIFY -->|failure| RECOVER["Error or recovery path"]
+```
+
+Relevant detected files: [`tests/test_permissions.py`](https://github.com/Nischhalsubba/HajiriFlow/blob/docs/interactive-readme/tests/test_permissions.py), [`src/hajiriflow/identity/permissions.py`](https://github.com/Nischhalsubba/HajiriFlow/blob/docs/interactive-readme/src/hajiriflow/identity/permissions.py), [`src/hajiriflow/db/session.py`](https://github.com/Nischhalsubba/HajiriFlow/blob/docs/interactive-readme/src/hajiriflow/db/session.py).
+
+> The diagram expresses the responsibility sequence only. Confirm exact providers, token formats, roles, and recovery behavior in the linked source.
+
+</details>
+<details>
+<summary><strong>Data flow and model surface</strong></summary>
+
+```mermaid
+flowchart LR
+    INPUT["User or system input"] --> VALIDATE["Validate and normalize"]
+    VALIDATE --> LOGIC["Application logic"]
+    LOGIC --> STORE["Persistent or local storage"]
+    STORE --> READ["Query / retrieval"]
+    READ --> OUTPUT["UI, API, report, or export"]
+```
+
+Detected data areas: [`migrations`](https://github.com/Nischhalsubba/HajiriFlow/tree/docs/interactive-readme/migrations), [`migrations/script.py.mako`](https://github.com/Nischhalsubba/HajiriFlow/blob/docs/interactive-readme/migrations/script.py.mako), [`migrations/env.py`](https://github.com/Nischhalsubba/HajiriFlow/blob/docs/interactive-readme/migrations/env.py), [`migrations/versions/20260803_0001_identity_foundation.py`](https://github.com/Nischhalsubba/HajiriFlow/blob/docs/interactive-readme/migrations/versions/20260803_0001_identity_foundation.py), [`tests/test_database.py`](https://github.com/Nischhalsubba/HajiriFlow/blob/docs/interactive-readme/tests/test_database.py), [`src/hajiriflow/db/models/__init__.py`](https://github.com/Nischhalsubba/HajiriFlow/blob/docs/interactive-readme/src/hajiriflow/db/models/__init__.py), [`src/hajiriflow/db/models/identity.py`](https://github.com/Nischhalsubba/HajiriFlow/blob/docs/interactive-readme/src/hajiriflow/db/models/identity.py).
+
+</details>
+<details>
+<summary><strong>Background jobs and scheduled work</strong></summary>
+
+```mermaid
+flowchart LR
+    EVENT["Event / schedule"] --> QUEUE["Queue or job definition"]
+    QUEUE --> WORKER["Worker / processor"]
+    WORKER --> RESULT["Persist result or emit side effect"]
+    WORKER -->|failure| RETRY["Retry, alert, or dead-letter path"]
+```
+
+Relevant detected files: [`src/hajiriflow/worker/__init__.py`](https://github.com/Nischhalsubba/HajiriFlow/blob/docs/interactive-readme/src/hajiriflow/worker/__init__.py), [`src/hajiriflow/worker/__main__.py`](https://github.com/Nischhalsubba/HajiriFlow/blob/docs/interactive-readme/src/hajiriflow/worker/__main__.py).
+
+</details>
+
+## Quality, security, and operations
+
+<table>
+<tr>
+<td width="33%" valign="top">
+
+### Quality
+
+- [`tests`](https://github.com/Nischhalsubba/HajiriFlow/tree/docs/interactive-readme/tests)
+
+Detected commands:
+- No standard quality command detected.
+
+</td>
+<td width="33%" valign="top">
+
+### Security
+
+- [`SECURITY.md`](https://github.com/Nischhalsubba/HajiriFlow/blob/docs/interactive-readme/SECURITY.md)
+
+Review authentication, authorization, input validation, dependency updates, secret handling, and failure recovery before release.
+
+</td>
+<td width="34%" valign="top">
+
+### Observability
+
+- No dedicated observability integration was detected automatically.
+
+Define useful logs, metrics, traces, alerts, and rollback signals for production-facing branches.
+
+</td>
+</tr>
+</table>
+
+## Delivery flow
+
+```mermaid
+flowchart LR
+    CHANGE["Change on docs/interactive-readme"] --> CHECK["Tests and quality checks"]
+    CHECK --> REVIEW["Review architecture and documentation impact"]
+    REVIEW --> BUILD["Build or package"]
+    BUILD --> DEPLOY["Deploy or release"]
+    DEPLOY --> VERIFY["Verify health and rollback readiness"]
+```
+
+### Automation detected
+
+- [`.github/workflows/ci.yml`](https://github.com/Nischhalsubba/HajiriFlow/blob/docs/interactive-readme/.github/workflows/ci.yml)
+
+## Contribution flow
+
+```mermaid
+flowchart LR
+    FORK["Create branch"] --> CHANGE["Make focused change"]
+    CHANGE --> TEST["Run relevant checks"]
+    TEST --> DOCS["Update README and diagrams"]
+    DOCS --> PR["Open pull request"]
+    PR --> REVIEW["Review and iterate"]
+    REVIEW --> MERGE["Merge when ready"]
+```
+
+- Keep changes focused and explain architectural consequences.
+- Run the checks relevant to the changed area.
+- Update diagrams whenever routes, modules, data models, authentication, jobs, or delivery paths change.
+- Add screenshots or recordings for visual behavior changes when useful.
+- Use issues for reproducible defects and pull requests for reviewable changes.
+
+## Ownership and support
+
+| Topic | Source |
+|---|---|
+| Repository | [`Nischhalsubba/HajiriFlow`](https://github.com/Nischhalsubba/HajiriFlow) |
+| Branch | [`docs/interactive-readme`](https://github.com/Nischhalsubba/HajiriFlow/tree/docs/interactive-readme) |
+| Ownership | No CODEOWNERS file detected |
+| Contributing | [`CONTRIBUTING.md`](https://github.com/Nischhalsubba/HajiriFlow/blob/docs/interactive-readme/CONTRIBUTING.md) |
+| Support | [Open or review issues](https://github.com/Nischhalsubba/HajiriFlow/issues) |
+| License | No license file detected |
+
+<details>
+<summary><strong>Documentation maintenance checklist</strong></summary>
+
+- [ ] Purpose and branch scope are accurate.
+- [ ] Setup and configuration commands still work.
+- [ ] Repository, application, API, data, authentication, job, and deployment diagrams match the code.
+- [ ] Tests, security controls, observability, and rollback behavior are documented.
+- [ ] Links point to real files on this branch.
+- [ ] No secrets or private operational details are exposed.
+
+</details>
+
+<!-- interactive-readme-standard:end -->
+
+<!-- project-authored-notes:start -->
+<details>
+<summary><strong>Project-authored notes preserved from this branch</strong></summary>
+
 <div align="center">
   <img src="site/assets/favicon.svg" width="88" height="88" alt="HajiriFlow logo">
 
@@ -472,96 +721,6 @@ Activate the environment:
 ```bash
 # Linux or macOS
 
-<!-- interactive-readme-standard:start -->
-
-> [!NOTE]
-> **Branch-specific documentation:** this section is maintained for [`docs/interactive-readme`](https://github.com/Nischhalsubba/HajiriFlow/tree/docs/interactive-readme). It is generated from the files present on this branch and preserves the project-authored README below.
-
-<details open>
-<summary><strong>Interactive repository guide</strong></summary>
-
-## Branch overview
-
-| Item | Value |
-|---|---|
-| Repository | [`Nischhalsubba/HajiriFlow`](https://github.com/Nischhalsubba/HajiriFlow) |
-| Branch | [`docs/interactive-readme`](https://github.com/Nischhalsubba/HajiriFlow/tree/docs/interactive-readme) |
-| Detected stack | Python, Docker, Docker Compose, JavaScript, CSS, HTML |
-| Detected manifests | pyproject.toml, Dockerfile, compose.yaml |
-| Documentation policy | Every maintained branch must explain purpose, setup, structure, architecture, flows, testing, delivery, security, and ownership. |
-
-## Repository structure
-
-```mermaid
-flowchart TD
-    ROOT["HajiriFlow / docs/interactive-readme"]
-    ROOT --> P0[".github/"]
-    ROOT --> P1["docs/"]
-    ROOT --> P2["migrations/"]
-    ROOT --> P3["site/"]
-    ROOT --> P4["src/"]
-    ROOT --> P5["tests/"]
-    ROOT --> P6[".env.example"]
-    ROOT --> P7[".gitignore"]
-    ROOT --> P8["AGENTS.md"]
-    ROOT --> P9["alembic.ini"]
-    ROOT --> P10["compose.yaml"]
-    ROOT --> P11["CONTRIBUTING.md"]
-    ROOT --> P12["Dockerfile"]
-    ROOT --> P13["netlify.toml"]
-    ROOT --> P14["pyproject.toml"]
-    ROOT --> P15["SECURITY.md"]
-```
-
-The diagram is generated from the branch's actual top-level files and directories. Use the branch link above for complete source navigation.
-
-## Website or application structure
-
-```mermaid
-flowchart TD
-    APP["HajiriFlow"]
-    APP --> R0["site"]
-    R0 --> F0["site/index.html"]
-```
-
-## Application and responsibility flow
-
-```mermaid
-flowchart LR
-    ACTOR["User / contributor"]
-    ACTOR --> A0["Interface: site, src"]
-    A0 --> A1["Data: migrations"]
-    A1 --> A2["Quality: tests"]
-    A2 --> A3["Documentation: docs"]
-    A3 --> A4["Delivery: .github"]
-    A4 --> DELIVERY["Delivery: Dockerfile, compose.yaml, netlify.toml, GitHub Actions"]
-```
-
-## Change-to-delivery flow
-
-```mermaid
-flowchart LR
-    CHANGE["Change on docs/interactive-readme"]
-    CHECK["Validate: Checks defined by pyproject.toml"]
-    REVIEW["Review documentation and architecture impact"]
-    RELEASE["Merge, release, or deploy according to this branch"]
-    CHANGE --> CHECK --> REVIEW --> RELEASE
-```
-
-## README requirements for this branch
-
-- Explain what this branch contains and how it differs from the default branch.
-- Keep installation, configuration, usage, testing, deployment, security, support, and license information accurate.
-- Document repository, website or application, API, data, authentication, background-job, and deployment flows when they exist.
-- Prefer Mermaid diagrams and expandable `<details>` sections for visual navigation.
-- Link diagrams and modules to real source paths; never invent missing components.
-- Preserve project-specific documentation and update diagrams whenever architecture or major paths change.
-- Treat secrets, private infrastructure, customer data, and credentials as prohibited README content.
-
-</details>
-
-<!-- interactive-readme-standard:end -->
-
 source .venv/bin/activate
 
 # Windows PowerShell
@@ -831,3 +990,6 @@ That means the repository is publicly visible, not automatically open source. Vi
   <strong>HajiriFlow</strong><br>
   Nepal-ready workforce evidence, decisions, and payroll accountability.
 </div>
+
+</details>
+<!-- project-authored-notes:end -->
