@@ -11,17 +11,32 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
-      - run: pip install -e '.[dev]'
-      - run: ruff check .
+          cache-dependency-path: app/pyproject.toml
+
+      - name: Install development dependencies
+        run: pip install -e '.[dev]'
+
+      - name: Lint Python
+        run: ruff check .
+
       - name: Validate frontend JavaScript
         run: |
           for file in site/assets/*.js; do
             node --check "$file"
           done
-      - run: pytest --cov=hajiriflow --cov-report=term-missing
+
+      - name: Run tests
+        run: pytest --cov=hajiriflow --cov-report=term-missing
