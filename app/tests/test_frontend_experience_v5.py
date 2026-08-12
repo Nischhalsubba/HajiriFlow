@@ -1,12 +1,13 @@
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-INDEX = (ROOT / "site" / "index.html").read_text(encoding="utf-8")
-CSS = (ROOT / "site" / "assets" / "experience-v5.css").read_text(encoding="utf-8")
-LOADING = (ROOT / "site" / "assets" / "loading-v5.js").read_text(encoding="utf-8")
-MEDIA = (ROOT / "site" / "assets" / "media-v5.js").read_text(encoding="utf-8")
-MOTION = (ROOT / "site" / "assets" / "motion-v5.js").read_text(encoding="utf-8")
-NETLIFY = (ROOT / "netlify.toml").read_text(encoding="utf-8")
+APP_ROOT = Path(__file__).resolve().parents[1]
+REPOSITORY_ROOT = APP_ROOT.parent
+INDEX = (APP_ROOT / "site" / "index.html").read_text(encoding="utf-8")
+CSS = (APP_ROOT / "site" / "assets" / "experience-v5.css").read_text(encoding="utf-8")
+LOADING = (APP_ROOT / "site" / "assets" / "loading-v5.js").read_text(encoding="utf-8")
+MEDIA = (APP_ROOT / "site" / "assets" / "media-v5.js").read_text(encoding="utf-8")
+MOTION = (APP_ROOT / "site" / "assets" / "motion-v5.js").read_text(encoding="utf-8")
+NETLIFY = (REPOSITORY_ROOT / "netlify.toml").read_text(encoding="utf-8")
 
 
 def test_v5_experience_assets_are_declared() -> None:
