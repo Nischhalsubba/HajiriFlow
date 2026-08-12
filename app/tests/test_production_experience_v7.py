@@ -1,11 +1,12 @@
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-INDEX = (ROOT / "site" / "index.html").read_text(encoding="utf-8")
-MEDIA = (ROOT / "site" / "assets" / "media-v5.js").read_text(encoding="utf-8")
-PRODUCTION = (ROOT / "site" / "assets" / "production-v7.js").read_text(encoding="utf-8")
-CSS = (ROOT / "site" / "assets" / "production-v7.css").read_text(encoding="utf-8")
-NETLIFY = (ROOT / "netlify.toml").read_text(encoding="utf-8")
+APP_ROOT = Path(__file__).resolve().parents[1]
+REPOSITORY_ROOT = APP_ROOT.parent
+INDEX = (APP_ROOT / "site" / "index.html").read_text(encoding="utf-8")
+MEDIA = (APP_ROOT / "site" / "assets" / "media-v5.js").read_text(encoding="utf-8")
+PRODUCTION = (APP_ROOT / "site" / "assets" / "production-v7.js").read_text(encoding="utf-8")
+CSS = (APP_ROOT / "site" / "assets" / "production-v7.css").read_text(encoding="utf-8")
+NETLIFY = (REPOSITORY_ROOT / "netlify.toml").read_text(encoding="utf-8")
 
 
 def test_production_assets_are_loaded_after_core_application() -> None:
@@ -39,6 +40,7 @@ def test_demo_language_and_destructive_demo_controls_are_removed() -> None:
 
 
 def test_csp_allows_only_required_portrait_origin() -> None:
+    assert 'base = "app"' in NETLIFY
     assert "https://images.unsplash.com" in NETLIFY
     assert "https://api.dicebear.com" not in NETLIFY
     assert "unsafe-inline" not in NETLIFY
