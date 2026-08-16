@@ -155,8 +155,7 @@ class IdentityService:
     ) -> CreatedSession:
         now = datetime.now(UTC)
         normalized = self.normalize_username(username)
-        subject_hash = self._protected_hash(normalized)
-        assert subject_hash is not None
+        subject_hash = hash_token(normalized, self.settings.session_secret)
         client_ip_hash = self._protected_hash(client_ip)
         self._enforce_login_limit(subject_hash, client_ip_hash, now)
 
