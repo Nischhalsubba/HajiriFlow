@@ -1,0 +1,29 @@
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: /app
+    schedule:
+      interval: weekly
+      day: monday
+      time: "12:15"
+      timezone: Asia/Kathmandu
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - maintenance
+    commit-message:
+      prefix: deps
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "12:30"
+      timezone: Asia/Kathmandu
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - maintenance
+    commit-message:
+      prefix: ci
