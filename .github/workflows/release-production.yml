@@ -1,0 +1,105 @@
+name: Release Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: Confirm release of the current main branch to production
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+concurrency:
+  group: production-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.ref == 'refs/heads/main' && inputs.confirm
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
+    steps:
+      - name: Check out exact requested commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Verify requested SHA is still current main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)"
+
+      - name: Detect deployable changes since last production release
+        id: changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          last_release="$(git log -1 --grep='\[deploy\]' --format=%H || true)"
+          if [ -z "$last_release" ]; then
+            changed="$(git ls-tree -r --name-only HEAD)"
+          else
+            changed="$(git diff --name-only "$last_release"..HEAD)"
+          fi
+          deployable="$(printf '%s\n' "$changed" | grep -Ev '^(README(\.md)?$|CHANGELOG(\.md)?$|DEPLOYMENT_POLICY\.md$|DEPLOYMENT_STANDARD\.md$|docs/|\.github/|app/docs/)' || true)"
+          if [ -z "$deployable" ]; then
+            echo "deployable=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "deployable=true" >> "$GITHUB_OUTPUT"
+            printf 'Deployable changes:\n%s\n' "$deployable"
+          fi
+
+      - name: Set up Python
+        if: steps.changes.outputs.deployable == 'true'
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.14'
+          cache: pip
+          cache-dependency-path: app/pyproject.toml
+
+      - name: Set up Node.js
+        if: steps.changes.outputs.deployable == 'true'
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24.19.0'
+
+      - name: Install validation dependencies
+        if: steps.changes.outputs.deployable == 'true'
+        working-directory: app
+        run: |
+          python -m pip install --upgrade 'pip==26.2.1' 'setuptools==83.0.0' 'wheel==0.47.0'
+          python -m pip install -e '.[dev]'
+
+      - name: Run production validation
+        if: steps.changes.outputs.deployable == 'true'
+        working-directory: app
+        shell: bash
+        run: |
+          set -euo pipefail
+          ruff check .
+          for file in site/assets/*.js; do node --check "$file"; done
+          pytest
+
+      - name: Re-verify main has not moved
+        if: steps.changes.outputs.deployable == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)"
+
+      - name: Authorize exactly one production deployment
+        if: steps.changes.outputs.deployable == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit --allow-empty -m "release: production [deploy]"
+          git push origin HEAD:main
