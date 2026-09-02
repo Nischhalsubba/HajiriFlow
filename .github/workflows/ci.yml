@@ -55,6 +55,19 @@ jobs:
             node --check "$file"
           done
 
+      - name: Validate production API proxy generation
+        shell: bash
+        run: |
+          set -euo pipefail
+          if CONTEXT=production HAJIRIFLOW_API_BASE_URL='' node scripts/generate-runtime-config.mjs; then
+            echo 'Production config generation unexpectedly accepted a missing API upstream.' >&2
+            exit 1
+          fi
+          CONTEXT=production HAJIRIFLOW_API_BASE_URL='https://api.example.invalid' node scripts/generate-runtime-config.mjs
+          node --check site/assets/runtime-config.js
+          grep -Fq '/api/* https://api.example.invalid/api/:splat 200' site/_redirects
+          grep -Fq '/* /index.html 200' site/_redirects
+
       - name: Run tests
         run: pytest --cov=hajiriflow --cov-report=term-missing
 
