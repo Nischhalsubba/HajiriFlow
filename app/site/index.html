@@ -11,6 +11,10 @@
   <link rel="stylesheet" href="/assets/hajiriflow-v4.css?v=20260803-7">
   <link rel="stylesheet" href="/assets/experience-v5.css?v=20260803-7">
   <link rel="stylesheet" href="/assets/production-v7.css?v=20260803-7">
+  <link rel="stylesheet" href="/assets/auth.css?v=20260902-1">
+  <script src="/assets/runtime-config.js?v=20260902-1" defer></script>
+  <script src="/assets/identity-client.js?v=20260902-1" defer></script>
+  <script src="/assets/identity-gate.js?v=20260902-1" defer></script>
   <script src="/assets/demo-engine.js?v=20260803-7" defer></script>
   <script src="/assets/loading-v5.js?v=20260803-7" defer></script>
   <script src="/assets/app-v3.js?v=20260803-7" defer></script>
@@ -20,10 +24,32 @@
   <script src="https://cdn.jsdelivr.net/npm/motion@12.42.1/dist/motion.js" defer></script>
   <script src="/assets/motion-v5.js?v=20260803-7" defer></script>
 </head>
-<body class="app-is-loading">
+<body class="app-is-loading identity-locked">
+  <main class="identity-gate" id="identity-gate" aria-label="HajiriFlow secure sign in">
+    <section class="identity-card">
+      <div class="identity-brand" aria-label="HajiriFlow">
+        <span class="identity-brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 28 28"><path d="M6 5v18M22 5v18M6 14h16"/></svg>
+        </span>
+        <span class="identity-brand-copy">
+          <strong>HajiriFlow</strong>
+          <span>Workforce intelligence</span>
+        </span>
+      </div>
+      <div id="identity-content">
+        <h1>Connecting securely</h1>
+        <p class="identity-intro">Verifying your session with the HajiriFlow API.</p>
+        <p class="identity-status" role="status" aria-live="polite">Please keep this page open while the session check completes.</p>
+      </div>
+      <noscript>
+        <p class="identity-status" data-tone="error">JavaScript is required to authenticate to HajiriFlow.</p>
+      </noscript>
+    </section>
+  </main>
+
   <a class="skip-link" href="#workspace">Skip to workspace</a>
 
-  <div class="app-shell" id="app-shell">
+  <div class="app-shell" id="app-shell" inert aria-hidden="true">
     <aside class="sidebar" id="sidebar" aria-label="Primary navigation">
       <div class="brand-block">
         <a class="brand" href="#overview" aria-label="HajiriFlow overview">
@@ -46,13 +72,14 @@
       <div class="sidebar-footer">
         <div class="connection-card" id="connection-card"></div>
         <button class="user-card" type="button" data-action="profile-menu" aria-label="Open profile menu">
-          <span class="user-avatar">NS</span>
+          <span class="user-avatar" data-current-user-initials>HF</span>
           <span class="user-copy">
-            <strong>Nischhal Subba</strong>
-            <small>Workspace administrator</small>
+            <strong data-current-user-name>Signed-in user</strong>
+            <small data-current-user-role>Authenticated user</small>
           </span>
           <span class="chevron" aria-hidden="true">⌄</span>
         </button>
+        <button class="identity-signout" type="button" data-identity-logout>Sign out</button>
       </div>
     </aside>
 
@@ -84,7 +111,7 @@
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-8 13h2"/></svg>
             <span class="notification-badge" id="notification-count">0</span>
           </button>
-          <button class="avatar-button" type="button" data-action="profile-menu" aria-label="Open profile menu">NS</button>
+          <button class="avatar-button" type="button" data-action="profile-menu" data-current-user-initials aria-label="Open profile menu">HF</button>
         </div>
       </header>
 
