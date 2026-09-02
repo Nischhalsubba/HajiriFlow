@@ -57,6 +57,42 @@
     });
   }
 
+  function openIdentityProfile(session) {
+    const modalLayer = byId("modal-layer");
+    if (!modalLayer || !session?.user) return;
+    const displayName = escapeText(session.user.display_name || session.user.username || "Signed-in user");
+    const role = permissionLabel(session);
+    const shortName = initials(displayName);
+
+    modalLayer.hidden = false;
+    modalLayer.innerHTML = `
+      <button class="modal-backdrop" data-action="close-modal" aria-label="Close dialog"></button>
+      <section class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <header>
+          <div><p class="eyebrow">Signed-in user</p><h2 id="modal-title"></h2></div>
+          <button class="icon-button" type="button" data-action="close-modal" aria-label="Close">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+          </button>
+        </header>
+        <div class="modal-body">
+          <div class="profile-menu-card">
+            <span class="user-avatar large" data-profile-initials></span>
+            <div><strong data-profile-role></strong><p data-profile-username></p></div>
+          </div>
+          <div class="stacked-actions">
+            <button type="button" class="button button-primary" data-action="go-settings"><span>Open settings</span></button>
+            <button type="button" class="button button-secondary" data-identity-logout><span>Sign out</span></button>
+          </div>
+        </div>
+      </section>
+    `;
+    modalLayer.querySelector("#modal-title").textContent = displayName;
+    modalLayer.querySelector("[data-profile-initials]").textContent = shortName;
+    modalLayer.querySelector("[data-profile-role]").textContent = role;
+    modalLayer.querySelector("[data-profile-username]").textContent = `@${session.user.username}`;
+    modalLayer.querySelector("button")?.focus();
+  }
+
   function unlockApplication(session) {
     const { gate, shell } = identityElements();
     updateUserSurfaces(session);
@@ -228,6 +264,11 @@
 
   async function signOut() {
     lockApplication();
+    const modalLayer = byId("modal-layer");
+    if (modalLayer) {
+      modalLayer.hidden = true;
+      modalLayer.innerHTML = "";
+    }
     renderChecking("Signing out and revoking this session.");
     try {
       await window.HFIdentity.logout();
@@ -261,11 +302,20 @@
   }
 
   document.addEventListener("click", (event) => {
-    const button = event.target.closest?.("[data-identity-logout]");
-    if (!button) return;
+    const profileButton = event.target.closest?.("[data-action='profile-menu']");
+    if (profileButton && window.HFIdentity?.session) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      openIdentityProfile(window.HFIdentity.session);
+      return;
+    }
+
+    const logoutButton = event.target.closest?.("[data-identity-logout]");
+    if (!logoutButton) return;
     event.preventDefault();
+    event.stopImmediatePropagation();
     signOut();
-  });
+  }, true);
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", boot, { once: true });
