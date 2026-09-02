@@ -82,7 +82,12 @@ def login(client: TestClient, username: str, password: str) -> str:
     return response.json()["csrf_token"]
 
 
-def assignment_for(assignments: list[dict], username: str, role_code: str, users: list[dict]) -> dict:
+def assignment_for(
+    assignments: list[dict],
+    username: str,
+    role_code: str,
+    users: list[dict],
+) -> dict:
     user_id = next(user["id"] for user in users if user["username"] == username)
     return next(
         assignment
