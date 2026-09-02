@@ -20,6 +20,12 @@
     return `${apiBaseUrl}/api/v1${path}`;
   }
 
+  function createError(status, message) {
+    const error = new Error(message);
+    error.status = status;
+    return error;
+  }
+
   async function parseResponse(response) {
     if (response.status === 204) return null;
     const contentType = response.headers.get("content-type") || "";
@@ -33,12 +39,6 @@
       throw createError(response.status, detail);
     }
     return payload;
-  }
-
-  function createError(status, message) {
-    const error = new Error(message);
-    error.status = status;
-    return error;
   }
 
   function rememberSession(session) {
@@ -71,6 +71,13 @@
     return parseResponse(response);
   }
 
+  async function refreshCsrf() {
+    const result = await request("/auth/csrf");
+    csrfToken = result?.csrf_token || null;
+    if (!csrfToken) throw createError(500, "The application API did not provide a security token.");
+    return csrfToken;
+  }
+
   async function login(username, password) {
     const session = await request("/auth/login", {
       method: "POST",
@@ -83,7 +90,8 @@
   async function me() {
     try {
       const session = await request("/auth/me");
-      return rememberSession(session);
+      await refreshCsrf();
+      return rememberSession({ ...session, csrf_token: csrfToken });
     } catch (error) {
       if (error.status === 401) {
         currentSession = null;
@@ -147,6 +155,7 @@
     login,
     logout,
     me,
+    refreshCsrf,
     setUserStatus,
   });
 })();
