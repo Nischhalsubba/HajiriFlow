@@ -1,12 +1,8 @@
 [build]
   base = "app"
   publish = "site"
+  command = "node scripts/generate-runtime-config.mjs"
   ignore = "if [ \"$BRANCH\" != \"main\" ]; then exit 0; fi; git log -1 --pretty=%B \"$COMMIT_REF\" | grep -Fq '[deploy]' || exit 0; exit 1"
-
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
 
 [[headers]]
   for = "/*"
