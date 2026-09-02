@@ -282,8 +282,19 @@ def set_user_status(
 ) -> UserView:
     if user_id == identity.principal.user.id and payload.status == "disabled":
         raise HTTPException(status_code=400, detail="you cannot disable your own account")
+
+    service = IdentityService(session, settings)
+    if (
+        has_permission(service.grants_for_user(user_id), FULL_ACCESS)
+        and not has_permission(identity.principal.grants, FULL_ACCESS)
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="system administrator accounts require system administrator access",
+        )
+
     try:
-        user = IdentityService(session, settings).set_user_status(
+        user = service.set_user_status(
             user_id=user_id,
             status=payload.status,
             actor_user_id=identity.principal.user.id,

@@ -47,6 +47,18 @@ def seed_identity_admin() -> None:
         actor_user_id=user.id,
         scope_type=ScopeType.GLOBAL,
     )
+    protected_admin = service.create_user(
+        username="protected.admin",
+        display_name="Protected System Admin",
+        password="protected-admin-password-123",
+        must_change_password=False,
+    )
+    service.assign_role(
+        user_id=protected_admin.id,
+        role_code="system_administrator",
+        actor_user_id=protected_admin.id,
+        scope_type=ScopeType.GLOBAL,
+    )
     session.commit()
     session.close()
 
@@ -105,6 +117,14 @@ def test_login_me_admin_create_and_logout() -> None:
         )
         assert elevated.status_code == 201, elevated.text
 
+        disabled = client.patch(
+            f"/api/v1/admin/users/{created.json()['id']}/status",
+            headers={"X-CSRF-Token": csrf},
+            json={"status": "disabled"},
+        )
+        assert disabled.status_code == 200, disabled.text
+        assert disabled.json()["status"] == "disabled"
+
         logout = client.post(
             "/api/v1/auth/logout",
             headers={"X-CSRF-Token": csrf},
@@ -113,7 +133,7 @@ def test_login_me_admin_create_and_logout() -> None:
         assert client.get("/api/v1/auth/me").status_code == 401
 
 
-def test_identity_admin_cannot_grant_system_administrator() -> None:
+def test_identity_admin_cannot_manage_system_administrator_privilege() -> None:
     seed_identity_admin()
     with TestClient(create_app()) as client:
         login_response = client.post(
@@ -125,6 +145,21 @@ def test_identity_admin_cannot_grant_system_administrator() -> None:
         )
         assert login_response.status_code == 200, login_response.text
         csrf = login_response.json()["csrf_token"]
+
+        users = client.get("/api/v1/admin/users")
+        assert users.status_code == 200
+        protected_admin = next(
+            user for user in users.json() if user["username"] == "protected.admin"
+        )
+        denied_status = client.patch(
+            f"/api/v1/admin/users/{protected_admin['id']}/status",
+            headers={"X-CSRF-Token": csrf},
+            json={"status": "disabled"},
+        )
+        assert denied_status.status_code == 403
+        assert denied_status.json()["detail"] == (
+            "system administrator accounts require system administrator access"
+        )
 
         created = client.post(
             "/api/v1/admin/users",

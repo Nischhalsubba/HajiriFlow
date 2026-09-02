@@ -22,9 +22,9 @@
   padding: 24px;
 }
 
-.account-intro h1,
+.account-intro h2,
 .account-panel h2,
-.account-denied h1 {
+.account-denied h2 {
   margin: 0;
   color: inherit;
 }

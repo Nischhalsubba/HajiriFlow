@@ -207,7 +207,7 @@
         <section class="account-intro" aria-labelledby="account-heading">
           <div>
             <p class="account-eyebrow">Identity & authorization</p>
-            <h1 id="account-heading">Access & accounts</h1>
+            <h2 id="account-heading">Access & accounts</h2>
             <p>Manage authenticated HajiriFlow accounts. Permissions remain enforced by the FastAPI backend; this screen never grants access by hiding or showing controls alone.</p>
           </div>
           <button class="account-button account-button-secondary" type="button" data-refresh-accounts>Refresh</button>
@@ -379,7 +379,7 @@
     if (!can("identity.user.read")) {
       workspace.innerHTML = `
         <section class="account-denied" id="account-management-root" role="alert">
-          <h1>Access restricted</h1>
+          <h2>Access restricted</h2>
           <p>Your authenticated account does not have permission to read the account directory.</p>
           <a class="account-button account-button-secondary" href="#overview">Return to overview</a>
         </section>
