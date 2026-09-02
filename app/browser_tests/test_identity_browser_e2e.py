@@ -54,7 +54,7 @@ def live_server(seeded_identity: None) -> Iterator[str]:
             sys.executable,
             "-m",
             "uvicorn",
-            "tests.browser_app:app",
+            "browser_tests.browser_app:app",
             "--host",
             "127.0.0.1",
             "--port",

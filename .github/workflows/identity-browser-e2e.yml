@@ -13,8 +13,7 @@ on:
       - 'app/alembic/**'
       - 'app/alembic.ini'
       - 'app/pyproject.toml'
-      - 'app/tests/browser_app.py'
-      - 'app/tests/test_identity_browser_e2e.py'
+      - 'app/browser_tests/**'
       - '.github/workflows/identity-browser-e2e.yml'
   push:
     branches: [main]
@@ -28,8 +27,7 @@ on:
       - 'app/alembic/**'
       - 'app/alembic.ini'
       - 'app/pyproject.toml'
-      - 'app/tests/browser_app.py'
-      - 'app/tests/test_identity_browser_e2e.py'
+      - 'app/browser_tests/**'
       - '.github/workflows/identity-browser-e2e.yml'
   workflow_dispatch:
 
@@ -94,4 +92,4 @@ jobs:
         run: alembic upgrade head
 
       - name: Run real browser authorization flow
-        run: pytest tests/test_identity_browser_e2e.py
+        run: pytest browser_tests/test_identity_browser_e2e.py
