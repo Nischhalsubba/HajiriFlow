@@ -31,6 +31,38 @@ def seed_admin(*, must_change_password: bool = False) -> None:
     session.close()
 
 
+def seed_identity_admin() -> None:
+    session = get_session_factory()()
+    seed_identity_catalog(session)
+    service = IdentityService(session, get_settings())
+    user = service.create_user(
+        username="identity.admin",
+        display_name="Identity Admin",
+        password="identity-admin-password-123",
+        must_change_password=False,
+    )
+    service.assign_role(
+        user_id=user.id,
+        role_code="identity_administrator",
+        actor_user_id=user.id,
+        scope_type=ScopeType.GLOBAL,
+    )
+    protected_admin = service.create_user(
+        username="protected.admin",
+        display_name="Protected System Admin",
+        password="protected-admin-password-123",
+        must_change_password=False,
+    )
+    service.assign_role(
+        user_id=protected_admin.id,
+        role_code="system_administrator",
+        actor_user_id=protected_admin.id,
+        scope_type=ScopeType.GLOBAL,
+    )
+    session.commit()
+    session.close()
+
+
 def login(client: TestClient, password: str = "correct-password-123") -> str:
     response = client.post(
         "/api/v1/auth/login",
@@ -78,12 +110,85 @@ def test_login_me_admin_create_and_logout() -> None:
         )
         assert created.status_code == 201, created.text
 
+        elevated = client.post(
+            f"/api/v1/admin/users/{created.json()['id']}/roles",
+            headers={"X-CSRF-Token": csrf},
+            json={"role_code": "system_administrator", "scope_type": "global"},
+        )
+        assert elevated.status_code == 201, elevated.text
+
+        disabled = client.patch(
+            f"/api/v1/admin/users/{created.json()['id']}/status",
+            headers={"X-CSRF-Token": csrf},
+            json={"status": "disabled"},
+        )
+        assert disabled.status_code == 200, disabled.text
+        assert disabled.json()["status"] == "disabled"
+
         logout = client.post(
             "/api/v1/auth/logout",
             headers={"X-CSRF-Token": csrf},
         )
         assert logout.status_code == 204
         assert client.get("/api/v1/auth/me").status_code == 401
+
+
+def test_identity_admin_cannot_manage_system_administrator_privilege() -> None:
+    seed_identity_admin()
+    with TestClient(create_app()) as client:
+        login_response = client.post(
+            "/api/v1/auth/login",
+            json={
+                "username": "identity.admin",
+                "password": "identity-admin-password-123",
+            },
+        )
+        assert login_response.status_code == 200, login_response.text
+        csrf = login_response.json()["csrf_token"]
+
+        users = client.get("/api/v1/admin/users")
+        assert users.status_code == 200
+        protected_admin = next(
+            user for user in users.json() if user["username"] == "protected.admin"
+        )
+        denied_status = client.patch(
+            f"/api/v1/admin/users/{protected_admin['id']}/status",
+            headers={"X-CSRF-Token": csrf},
+            json={"status": "disabled"},
+        )
+        assert denied_status.status_code == 403
+        assert denied_status.json()["detail"] == (
+            "system administrator accounts require system administrator access"
+        )
+
+        created = client.post(
+            "/api/v1/admin/users",
+            headers={"X-CSRF-Token": csrf},
+            json={
+                "username": "target.user",
+                "display_name": "Target User",
+                "password": "target-user-password-123",
+            },
+        )
+        assert created.status_code == 201, created.text
+        user_id = created.json()["id"]
+
+        denied = client.post(
+            f"/api/v1/admin/users/{user_id}/roles",
+            headers={"X-CSRF-Token": csrf},
+            json={"role_code": "system_administrator", "scope_type": "global"},
+        )
+        assert denied.status_code == 403
+        assert denied.json()["detail"] == (
+            "system administrator role requires system administrator access"
+        )
+
+        allowed = client.post(
+            f"/api/v1/admin/users/{user_id}/roles",
+            headers={"X-CSRF-Token": csrf},
+            json={"role_code": "employee", "scope_type": "global"},
+        )
+        assert allowed.status_code == 201, allowed.text
 
 
 def test_required_password_change_blocks_privileged_actions() -> None:

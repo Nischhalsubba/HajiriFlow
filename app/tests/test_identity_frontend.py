@@ -25,7 +25,10 @@ def test_identity_scripts_load_before_demo_application_state() -> None:
     client = html.index('/assets/identity-client.js')
     gate = html.index('/assets/identity-gate.js')
     demo = html.index('/assets/demo-engine.js')
+    accounts = html.index('/assets/account-management.js')
+    application = html.index('/assets/app-v3.js')
     assert runtime < client < gate < demo
+    assert application < accounts
 
 
 def test_identity_client_uses_same_origin_cookie_session_and_csrf_refresh() -> None:
@@ -53,6 +56,29 @@ def test_legacy_profile_action_is_replaced_by_authenticated_identity() -> None:
     assert "event.stopImmediatePropagation()" in source
     assert "data-profile-username" in source
     assert "data-profile-role" in source
+
+
+def test_account_management_uses_protected_identity_api_and_permissions() -> None:
+    html = read("site/index.html")
+    source = read("site/assets/account-management.js")
+    css = read("site/assets/account-management.css")
+    assert '/assets/account-management.css' in html
+    assert '/assets/account-management.js' in html
+    assert 'can("identity.user.read")' in source
+    assert 'can("identity.user.create")' in source
+    assert 'can("identity.user.manage")' in source
+    assert 'can("identity.role.assign")' in source
+    assert "window.HFIdentity.listUsers()" in source
+    assert "window.HFIdentity.createUser(input)" in source
+    assert "window.HFIdentity.setUserStatus" in source
+    assert "window.HFIdentity.assignRole" in source
+    assert 'roleCode === "system_administrator" && !can(FULL_ACCESS)' in source
+    assert "localStorage" not in source
+    assert "sessionStorage" not in source
+    assert "min-height: 44px" in css
+    assert "min-height: 48px" in css
+    assert ":focus-visible" in css
+    assert "prefers-reduced-motion" in css
 
 
 def test_netlify_keeps_browser_api_same_origin() -> None:
