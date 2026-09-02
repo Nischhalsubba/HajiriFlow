@@ -11,7 +11,7 @@ from hajiriflow.main import create_app
 pytestmark = pytest.mark.usefixtures("database")
 
 
-def seed_admin() -> None:
+def seed_admin(*, must_change_password: bool = False) -> None:
     session = get_session_factory()()
     seed_identity_catalog(session)
     service = IdentityService(session, get_settings())
@@ -19,6 +19,7 @@ def seed_admin() -> None:
         username="admin",
         display_name="System Admin",
         password="correct-password-123",
+        must_change_password=must_change_password,
     )
     service.assign_role(
         user_id=user.id,
@@ -30,10 +31,10 @@ def seed_admin() -> None:
     session.close()
 
 
-def login(client: TestClient) -> str:
+def login(client: TestClient, password: str = "correct-password-123") -> str:
     response = client.post(
         "/api/v1/auth/login",
-        json={"username": "admin", "password": "correct-password-123"},
+        json={"username": "admin", "password": password},
     )
     assert response.status_code == 200, response.text
     return response.json()["csrf_token"]
@@ -47,6 +48,10 @@ def test_login_me_admin_create_and_logout() -> None:
         me = client.get("/api/v1/auth/me")
         assert me.status_code == 200
         assert me.json()["user"]["username"] == "admin"
+
+        refreshed_csrf = client.get("/api/v1/auth/csrf")
+        assert refreshed_csrf.status_code == 200
+        assert refreshed_csrf.json()["csrf_token"] == csrf
 
         users = client.get("/api/v1/admin/users")
         assert users.status_code == 200
@@ -81,6 +86,30 @@ def test_login_me_admin_create_and_logout() -> None:
         assert client.get("/api/v1/auth/me").status_code == 401
 
 
+def test_required_password_change_blocks_privileged_actions() -> None:
+    seed_admin(must_change_password=True)
+    with TestClient(create_app()) as client:
+        csrf = login(client)
+
+        denied = client.get("/api/v1/admin/users")
+        assert denied.status_code == 403
+        assert denied.json()["detail"] == "password change required"
+
+        changed = client.post(
+            "/api/v1/auth/change-password",
+            headers={"X-CSRF-Token": csrf},
+            json={
+                "current_password": "correct-password-123",
+                "new_password": "replacement-password-456",
+            },
+        )
+        assert changed.status_code == 204
+        assert client.get("/api/v1/auth/me").status_code == 401
+
+        login(client, "replacement-password-456")
+        assert client.get("/api/v1/admin/users").status_code == 200
+
+
 def test_unknown_role_grants_no_admin_access() -> None:
     session = get_session_factory()()
     seed_identity_catalog(session)
@@ -89,6 +118,7 @@ def test_unknown_role_grants_no_admin_access() -> None:
         username="employee",
         display_name="Employee",
         password="employee-password-123",
+        must_change_password=False,
     )
     session.commit()
     session.close()

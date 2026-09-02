@@ -1,0 +1,222 @@
+:root {
+  --auth-bg: #f7f9fc;
+  --auth-surface: #ffffff;
+  --auth-text: #101828;
+  --auth-muted: #475467;
+  --auth-border: #d0d5dd;
+  --auth-primary: #175cd3;
+  --auth-primary-hover: #1849a9;
+  --auth-danger: #b42318;
+  --auth-danger-bg: #fef3f2;
+  --auth-focus: #84adff;
+  --auth-shadow: 0 24px 64px rgba(16, 24, 40, 0.16);
+}
+
+body.identity-locked {
+  overflow: hidden;
+}
+
+body.identity-locked .app-shell {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.identity-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 1400;
+  display: grid;
+  place-items: center;
+  overflow: auto;
+  padding: 32px 20px;
+  background: var(--auth-bg);
+  color: var(--auth-text);
+}
+
+.identity-card {
+  width: min(100%, 460px);
+  padding: 32px;
+  border: 1px solid var(--auth-border);
+  border-radius: 20px;
+  background: var(--auth-surface);
+  box-shadow: var(--auth-shadow);
+}
+
+.identity-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.identity-brand-mark {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--auth-text);
+  color: #ffffff;
+}
+
+.identity-brand-mark svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.identity-brand-copy strong,
+.identity-brand-copy span {
+  display: block;
+}
+
+.identity-brand-copy strong {
+  font-size: 17px;
+  line-height: 1.35;
+}
+
+.identity-brand-copy span {
+  margin-top: 2px;
+  color: var(--auth-muted);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.identity-card h1 {
+  margin: 0;
+  font-size: clamp(26px, 5vw, 34px);
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+}
+
+.identity-intro {
+  margin: 12px 0 24px;
+  color: var(--auth-muted);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.identity-form {
+  display: grid;
+  gap: 18px;
+}
+
+.identity-field {
+  display: grid;
+  gap: 7px;
+}
+
+.identity-field label {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.identity-field input {
+  width: 100%;
+  min-height: 48px;
+  padding: 11px 13px;
+  border: 1px solid var(--auth-border);
+  border-radius: 10px;
+  background: var(--auth-surface);
+  color: var(--auth-text);
+  font: inherit;
+  font-size: 16px;
+}
+
+.identity-field input:focus-visible,
+.identity-button:focus-visible,
+.identity-signout:focus-visible {
+  outline: 3px solid var(--auth-focus);
+  outline-offset: 2px;
+}
+
+.identity-button {
+  min-height: 48px;
+  padding: 11px 16px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--auth-primary);
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+}
+
+.identity-button:hover:not(:disabled) {
+  background: var(--auth-primary-hover);
+}
+
+.identity-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.identity-status {
+  min-height: 22px;
+  margin: 16px 0 0;
+  color: var(--auth-muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.identity-status[data-tone="error"] {
+  padding: 12px 14px;
+  border: 1px solid #fecdca;
+  border-radius: 10px;
+  background: var(--auth-danger-bg);
+  color: var(--auth-danger);
+}
+
+.identity-support-copy {
+  margin: 18px 0 0;
+  color: var(--auth-muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.identity-signout {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 10px;
+  padding: 9px 12px;
+  border: 1px solid var(--auth-border);
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+}
+
+@media (max-width: 520px) {
+  .identity-gate {
+    align-items: start;
+    padding: 20px 12px;
+  }
+
+  .identity-card {
+    margin-top: 4vh;
+    padding: 24px 20px;
+    border-radius: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .identity-button,
+  .identity-signout {
+    scroll-behavior: auto;
+    transition: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --auth-border: #667085;
+    --auth-focus: #155eef;
+  }
+}

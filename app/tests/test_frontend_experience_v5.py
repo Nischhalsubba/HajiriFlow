@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 APP_ROOT = Path(__file__).resolve().parents[1]
@@ -23,7 +24,9 @@ def test_v5_experience_assets_are_declared() -> None:
 def test_skeleton_loading_has_real_lifecycle_and_accessibility() -> None:
     assert 'id="app-skeleton"' in INDEX
     assert 'aria-busy="true"' in INDEX
-    assert 'class="app-is-loading"' in INDEX
+    body_classes = re.search(r'<body\s+class="([^"]+)"', INDEX)
+    assert body_classes is not None
+    assert "app-is-loading" in body_classes.group(1).split()
     assert "showLoading" in LOADING
     assert "finishLoading" in LOADING
     assert "MutationObserver" in LOADING

@@ -66,6 +66,11 @@ def require_permission(permission: str):
         identity: Annotated[RequestIdentity, Depends(current_identity)],
         organization_id: UUID | None = None,
     ) -> RequestIdentity:
+        if identity.principal.user.must_change_password:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="password change required",
+            )
         if not has_permission(
             identity.principal.grants,
             permission,

@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from hajiriflow import __version__
+from hajiriflow.api.csrf import router as csrf_router
 from hajiriflow.api.health import router as health_router
 from hajiriflow.api.identity import router as identity_router
 from hajiriflow.api.middleware import SecurityHeadersMiddleware
@@ -27,6 +28,7 @@ def create_app() -> FastAPI:
     )
     app.include_router(health_router)
     app.include_router(identity_router)
+    app.include_router(csrf_router)
     return app
 
 
