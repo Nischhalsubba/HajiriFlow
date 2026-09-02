@@ -2,22 +2,16 @@
   "use strict";
 
   const rawConfig = window.__HAJIRIFLOW_CONFIG__ || {};
-  const apiBaseUrl = String(rawConfig.apiBaseUrl || "").trim().replace(/\/+$/, "");
+  const apiBasePath = String(rawConfig.apiBasePath || "/api").trim().replace(/\/+$/, "");
   let currentSession = null;
   let csrfToken = null;
 
   function isConfigured() {
-    if (!apiBaseUrl) return false;
-    try {
-      const url = new URL(apiBaseUrl);
-      return url.protocol === "https:" || (url.protocol === "http:" && ["localhost", "127.0.0.1"].includes(url.hostname));
-    } catch {
-      return false;
-    }
+    return apiBasePath.startsWith("/") && !apiBasePath.startsWith("//");
   }
 
   function endpoint(path) {
-    return `${apiBaseUrl}/api/v1${path}`;
+    return `${apiBasePath}/v1${path}`;
   }
 
   function createError(status, message) {
@@ -48,7 +42,7 @@
   }
 
   async function request(path, { method = "GET", body, csrf = false } = {}) {
-    if (!isConfigured()) throw createError(503, "HajiriFlow API is not configured.");
+    if (!isConfigured()) throw createError(503, "HajiriFlow API proxy is not configured.");
     const headers = { Accept: "application/json" };
     if (body !== undefined) headers["Content-Type"] = "application/json";
     if (csrf) {
@@ -61,7 +55,7 @@
       response = await fetch(endpoint(path), {
         method,
         headers,
-        credentials: "include",
+        credentials: "same-origin",
         cache: "no-store",
         body: body === undefined ? undefined : JSON.stringify(body),
       });
@@ -148,7 +142,7 @@
     assignRole,
     changePassword,
     createUser,
-    get apiBaseUrl() { return apiBaseUrl; },
+    get apiBasePath() { return apiBasePath; },
     get session() { return currentSession; },
     isConfigured,
     listUsers,
