@@ -20,7 +20,7 @@ from hajiriflow.identity.exceptions import (
     InvalidAccountStatus,
     InvalidCredentials,
 )
-from hajiriflow.identity.permissions import ScopeType
+from hajiriflow.identity.permissions import FULL_ACCESS, ScopeType, has_permission
 from hajiriflow.identity.service import IdentityService
 from hajiriflow.identity.tokens import generate_csrf_token
 
@@ -306,6 +306,14 @@ def assign_role(
     session: Annotated[Session, Depends(get_db)],
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> dict[str, str]:
+    if payload.role_code == "system_administrator" and not has_permission(
+        identity.principal.grants,
+        FULL_ACCESS,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="system administrator role requires system administrator access",
+        )
     try:
         assignment = IdentityService(session, settings).assign_role(
             user_id=user_id,
