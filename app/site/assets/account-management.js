@@ -4,6 +4,8 @@
   const FULL_ACCESS = "system.full_access";
   const state = {
     users: [],
+    roles: [],
+    assignments: [],
     search: "",
     busy: false,
   };
@@ -72,15 +74,54 @@
     </span>`;
   }
 
-  function roleOptions() {
-    const options = [
-      ["employee", "Employee"],
-      ["identity_administrator", "Identity administrator"],
+  function availableRoles() {
+    const fallback = [
+      { code: "employee", name: "Employee" },
+      { code: "identity_administrator", name: "Identity administrator" },
+      { code: "system_administrator", name: "System administrator" },
     ];
-    if (can(FULL_ACCESS)) options.push(["system_administrator", "System administrator"]);
-    return options.map(([value, label]) => (
-      `<option value="${value}">${label}</option>`
+    const roles = state.roles.length ? state.roles : fallback;
+    return roles.filter((role) => role.code !== "system_administrator" || can(FULL_ACCESS));
+  }
+
+  function roleOptions() {
+    return availableRoles().map((role) => (
+      `<option value="${escapeHtml(role.code)}">${escapeHtml(role.name)}</option>`
     )).join("");
+  }
+
+  function assignmentsFor(userId) {
+    return state.assignments.filter((assignment) => assignment.user_id === userId);
+  }
+
+  function roleSummary(user) {
+    const assignments = assignmentsFor(user.id);
+    if (!assignments.length) return '<span class="account-note">No active role</span>';
+
+    const currentUserId = window.HFIdentity?.session?.user?.id;
+    return assignments.map((assignment) => {
+      const scope = assignment.scope_type === "organization"
+        ? " · Organization scoped"
+        : " · Global";
+      const canRevoke = can("identity.role.assign")
+        && assignment.user_id !== currentUserId
+        && (assignment.role_code !== "system_administrator" || can(FULL_ACCESS));
+      return `
+        <div class="account-role-action">
+          <span class="account-status" title="${escapeHtml(assignment.role_code)}">
+            ${escapeHtml(assignment.role_name)}${scope}
+          </span>
+          ${canRevoke ? `
+            <button class="account-button account-button-secondary" type="button"
+              data-revoke-role="${escapeHtml(assignment.id)}"
+              data-role-name="${escapeHtml(assignment.role_name)}"
+              data-user-name="${escapeHtml(user.display_name)}">
+              Remove role
+            </button>
+          ` : ""}
+        </div>
+      `;
+    }).join("");
   }
 
   function userActions(user) {
@@ -118,8 +159,15 @@
   function filteredUsers() {
     const query = state.search.trim().toLowerCase();
     if (!query) return state.users;
-    return state.users.filter((user) => [user.display_name, user.username, user.status]
-      .some((value) => String(value || "").toLowerCase().includes(query)));
+    return state.users.filter((user) => {
+      const identityMatches = [user.display_name, user.username, user.status]
+        .some((value) => String(value || "").toLowerCase().includes(query));
+      const roleMatches = assignmentsFor(user.id).some((assignment) => (
+        String(assignment.role_name || "").toLowerCase().includes(query)
+        || String(assignment.role_code || "").toLowerCase().includes(query)
+      ));
+      return identityMatches || roleMatches;
+    });
   }
 
   function renderUserList(root) {
@@ -150,7 +198,8 @@
         </div>
         <div class="account-meta">
           ${statusPill(user)}
-          ${user.must_change_password ? "<span class=\"account-note\">Password change required</span>" : ""}
+          ${user.must_change_password ? '<span class="account-note">Password change required</span>' : ""}
+          ${roleSummary(user)}
         </div>
         ${userActions(user)}
       </article>
@@ -208,7 +257,7 @@
           <div>
             <p class="account-eyebrow">Identity & authorization</p>
             <h2 id="account-heading">Access & accounts</h2>
-            <p>Manage authenticated HajiriFlow accounts. Permissions remain enforced by the FastAPI backend; this screen never grants access by hiding or showing controls alone.</p>
+            <p>Manage authenticated HajiriFlow accounts and active roles. Permissions remain enforced by the FastAPI backend; this screen never grants access by hiding or showing controls alone.</p>
           </div>
           <button class="account-button account-button-secondary" type="button" data-refresh-accounts>Refresh</button>
         </section>
@@ -219,7 +268,7 @@
             <div><p class="account-eyebrow">Directory</p><h2 id="account-list-title">User accounts</h2></div>
             <label class="account-search">
               <span class="sr-only">Search accounts</span>
-              <input type="search" data-account-search placeholder="Search name, username, or status" autocomplete="off">
+              <input type="search" data-account-search placeholder="Search name, username, status, or role" autocomplete="off">
             </label>
           </div>
           <div class="account-list" data-account-list aria-busy="true">
@@ -238,13 +287,27 @@
     alert.textContent = message || "";
   }
 
-  async function loadUsers(root, { announce = false } = {}) {
+  function syncRoleSelects(root) {
+    const options = roleOptions();
+    root.querySelectorAll("select[name='role_code'], [data-role-select]")
+      .forEach((select) => { select.innerHTML = options; });
+  }
+
+  async function loadDirectory(root, { announce = false } = {}) {
     const list = root.querySelector("[data-account-list]");
     if (list) list.setAttribute("aria-busy", "true");
     try {
-      state.users = await window.HFIdentity.listUsers();
+      const [users, roles, assignments] = await Promise.all([
+        window.HFIdentity.listUsers(),
+        window.HFIdentity.listRoles(),
+        window.HFIdentity.listRoleAssignments(),
+      ]);
+      state.users = users;
+      state.roles = roles;
+      state.assignments = assignments;
+      syncRoleSelects(root);
       renderUserList(root);
-      if (announce) setAlert(root, "Account directory refreshed.", "success");
+      if (announce) setAlert(root, "Account and role directory refreshed.", "success");
     } catch (error) {
       if (list) {
         list.innerHTML = `
@@ -301,7 +364,7 @@
       form.reset();
       const passwordField = form.querySelector("input[name='password']");
       if (passwordField) passwordField.value = "";
-      await loadUsers(root);
+      await loadDirectory(root);
       if (!status.dataset.tone) {
         status.dataset.tone = "success";
         status.textContent = roleCode && roleAssigned
@@ -330,7 +393,7 @@
     setAlert(root, `${nextStatus === "disabled" ? "Disabling" : "Enabling"} ${userName}…`);
     try {
       await window.HFIdentity.setUserStatus(userId, nextStatus);
-      await loadUsers(root);
+      await loadDirectory(root);
       setAlert(root, `${userName} is now ${nextStatus}.`, "success");
     } catch (error) {
       setAlert(root, error.message || "Account status could not be changed.", "error");
@@ -360,9 +423,34 @@
         scope_type: "global",
         scope_id: null,
       });
+      await loadDirectory(root);
       setAlert(root, "Role assigned. Server-side permission checks apply immediately to new requests.", "success");
     } catch (error) {
       setAlert(root, error.message || "Role assignment failed.", "error");
+    } finally {
+      state.busy = false;
+      button.disabled = false;
+    }
+  }
+
+  async function revokeRole(root, button) {
+    if (!can("identity.role.assign") || state.busy) return;
+    const assignmentId = button.dataset.revokeRole;
+    const roleName = button.dataset.roleName || "this role";
+    const userName = button.dataset.userName || "this user";
+    if (!window.confirm(`Remove ${roleName} from ${userName}? The assignment will remain in audit history.`)) {
+      return;
+    }
+
+    state.busy = true;
+    button.disabled = true;
+    setAlert(root, `Removing ${roleName} from ${userName}…`);
+    try {
+      await window.HFIdentity.revokeRoleAssignment(assignmentId);
+      await loadDirectory(root);
+      setAlert(root, `${roleName} was removed from ${userName}.`, "success");
+    } catch (error) {
+      setAlert(root, error.message || "Role could not be removed.", "error");
     } finally {
       state.busy = false;
       button.disabled = false;
@@ -388,7 +476,7 @@
     }
 
     renderShell(workspace);
-    await loadUsers(workspace);
+    await loadDirectory(workspace);
   }
 
   function ensureRoute() {
@@ -419,7 +507,7 @@
     if (!root || !accountRouteActive()) return;
     const refresh = event.target.closest?.("[data-refresh-accounts]");
     if (refresh) {
-      loadUsers(root, { announce: true });
+      loadDirectory(root, { announce: true });
       return;
     }
     const statusButton = event.target.closest?.("[data-account-status]");
@@ -428,7 +516,12 @@
       return;
     }
     const roleButton = event.target.closest?.("[data-assign-role]");
-    if (roleButton) assignRole(root, roleButton);
+    if (roleButton) {
+      assignRole(root, roleButton);
+      return;
+    }
+    const revokeButton = event.target.closest?.("[data-revoke-role]");
+    if (revokeButton) revokeRole(root, revokeButton);
   });
 
   window.addEventListener("hajiriflow:identity-ready", () => {

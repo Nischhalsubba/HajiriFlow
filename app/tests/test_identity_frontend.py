@@ -61,6 +61,7 @@ def test_legacy_profile_action_is_replaced_by_authenticated_identity() -> None:
 def test_account_management_uses_protected_identity_api_and_permissions() -> None:
     html = read("site/index.html")
     source = read("site/assets/account-management.js")
+    client = read("site/assets/identity-client.js")
     css = read("site/assets/account-management.css")
     assert '/assets/account-management.css' in html
     assert '/assets/account-management.js' in html
@@ -69,10 +70,16 @@ def test_account_management_uses_protected_identity_api_and_permissions() -> Non
     assert 'can("identity.user.manage")' in source
     assert 'can("identity.role.assign")' in source
     assert "window.HFIdentity.listUsers()" in source
+    assert "window.HFIdentity.listRoles()" in source
+    assert "window.HFIdentity.listRoleAssignments()" in source
     assert "window.HFIdentity.createUser(input)" in source
     assert "window.HFIdentity.setUserStatus" in source
     assert "window.HFIdentity.assignRole" in source
-    assert 'roleCode === "system_administrator" && !can(FULL_ACCESS)' in source
+    assert "window.HFIdentity.revokeRoleAssignment" in source
+    assert 'role_code !== "system_administrator" || can(FULL_ACCESS)' in source
+    assert 'request("/admin/roles")' in client
+    assert 'request("/admin/role-assignments")' in client
+    assert 'method: "DELETE"' in client
     assert "localStorage" not in source
     assert "sessionStorage" not in source
     assert "min-height: 44px" in css

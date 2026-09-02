@@ -130,11 +130,26 @@
     });
   }
 
+  async function listRoles() {
+    return request("/admin/roles");
+  }
+
+  async function listRoleAssignments() {
+    return request("/admin/role-assignments");
+  }
+
   async function assignRole(userId, input) {
     return request(`/admin/users/${encodeURIComponent(userId)}/roles`, {
       method: "POST",
       csrf: true,
       body: input,
+    });
+  }
+
+  async function revokeRoleAssignment(assignmentId) {
+    return request(`/admin/role-assignments/${encodeURIComponent(assignmentId)}`, {
+      method: "DELETE",
+      csrf: true,
     });
   }
 
@@ -145,11 +160,14 @@
     get apiBasePath() { return apiBasePath; },
     get session() { return currentSession; },
     isConfigured,
+    listRoleAssignments,
+    listRoles,
     listUsers,
     login,
     logout,
     me,
     refreshCsrf,
+    revokeRoleAssignment,
     setUserStatus,
   });
 })();
