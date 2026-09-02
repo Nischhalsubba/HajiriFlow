@@ -57,3 +57,59 @@ jobs:
 
       - name: Run tests
         run: pytest --cov=hajiriflow --cov-report=term-missing
+
+  migration-roundtrip:
+    name: PostgreSQL migration roundtrip
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: app
+    env:
+      HAJIRIFLOW_ENVIRONMENT: test
+      HAJIRIFLOW_DATABASE_URL: postgresql+psycopg://hajiriflow:hajiriflow@localhost:5432/hajiriflow
+      HAJIRIFLOW_SESSION_SECRET: ci-only-session-secret-that-is-longer-than-32-characters
+      HAJIRIFLOW_COOKIE_SECURE: 'false'
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: hajiriflow
+          POSTGRES_PASSWORD: hajiriflow
+          POSTGRES_DB: hajiriflow
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U hajiriflow -d hajiriflow"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.14'
+          cache: pip
+          cache-dependency-path: app/pyproject.toml
+
+      - name: Pin packaging tools
+        run: python -m pip install --upgrade 'pip==26.2.1' 'setuptools==83.0.0' 'wheel==0.47.0'
+
+      - name: Install application
+        run: python -m pip install -e '.[dev]'
+
+      - name: Upgrade schema to head
+        run: alembic upgrade head
+
+      - name: Downgrade schema to base
+        run: alembic downgrade base
+
+      - name: Re-upgrade schema to head
+        run: alembic upgrade head
+
+      - name: Confirm migration head
+        run: alembic current --check-heads
