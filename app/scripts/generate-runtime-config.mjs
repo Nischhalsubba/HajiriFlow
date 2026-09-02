@@ -3,37 +3,49 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const output = resolve(here, "../site/assets/runtime-config.js");
+const siteRoot = resolve(here, "../site");
+const configOutput = resolve(siteRoot, "assets/runtime-config.js");
+const redirectsOutput = resolve(siteRoot, "_redirects");
 const context = (process.env.CONTEXT || process.env.HAJIRIFLOW_ENVIRONMENT || "development").trim();
-const apiBaseUrl = (process.env.HAJIRIFLOW_API_BASE_URL || "").trim().replace(/\/+$/, "");
-const csrfCookieName = (process.env.HAJIRIFLOW_CSRF_COOKIE_NAME || "hajiriflow_csrf").trim();
+const upstreamValue = (process.env.HAJIRIFLOW_API_BASE_URL || "").trim().replace(/\/+$/, "");
 
-if (apiBaseUrl && !/^https?:\/\//i.test(apiBaseUrl)) {
-  throw new Error("HAJIRIFLOW_API_BASE_URL must be an absolute http(s) URL.");
+function normalizeUpstream(value) {
+  if (!value) return "";
+  let url;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error("HAJIRIFLOW_API_BASE_URL must be an absolute http(s) URL.");
+  }
+  if (!['http:', 'https:'].includes(url.protocol)) {
+    throw new Error("HAJIRIFLOW_API_BASE_URL must use http or https.");
+  }
+  if (url.username || url.password || url.search || url.hash) {
+    throw new Error("HAJIRIFLOW_API_BASE_URL must not contain credentials, a query, or a fragment.");
+  }
+  if (context === "production" && url.protocol !== "https:") {
+    throw new Error("Production HAJIRIFLOW_API_BASE_URL must use HTTPS.");
+  }
+  return url.href.replace(/\/+$/, "");
 }
 
-if (context === "production" && !apiBaseUrl) {
+const upstream = normalizeUpstream(upstreamValue);
+if (context === "production" && !upstream) {
   throw new Error("Production builds require HAJIRIFLOW_API_BASE_URL.");
 }
 
-if (context === "production" && !/^https:\/\//i.test(apiBaseUrl)) {
-  throw new Error("Production HAJIRIFLOW_API_BASE_URL must use HTTPS.");
-}
-
-if (!/^[A-Za-z0-9_-]{1,128}$/.test(csrfCookieName)) {
-  throw new Error("HAJIRIFLOW_CSRF_COOKIE_NAME contains unsupported characters.");
-}
-
-const config = Object.freeze({
-  apiBaseUrl,
-  csrfCookieName,
-});
-
-mkdirSync(dirname(output), { recursive: true });
+const config = Object.freeze({ apiBasePath: "/api" });
+mkdirSync(dirname(configOutput), { recursive: true });
 writeFileSync(
-  output,
+  configOutput,
   `window.__HAJIRIFLOW_CONFIG__ = Object.freeze(${JSON.stringify(config)});\n`,
   "utf8",
 );
 
-console.log(`Generated ${output} for ${context}.`);
+const redirectRules = upstream
+  ? `/api/* ${upstream}/api/:splat 200\n/* /index.html 200\n`
+  : `/* /index.html 200\n`;
+writeFileSync(redirectsOutput, redirectRules, "utf8");
+
+console.log(`Generated browser runtime configuration for ${context}.`);
+console.log(upstream ? "Configured same-origin /api proxy." : "No API proxy configured outside production.");
