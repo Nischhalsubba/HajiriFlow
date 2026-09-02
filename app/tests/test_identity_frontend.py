@@ -46,6 +46,15 @@ def test_auth_gate_enforces_required_password_change() -> None:
     assert "unlockApplication(session)" in source
 
 
+def test_legacy_profile_action_is_replaced_by_authenticated_identity() -> None:
+    source = read("site/assets/identity-gate.js")
+    assert "openIdentityProfile(window.HFIdentity.session)" in source
+    assert "[data-action='profile-menu']" in source
+    assert "event.stopImmediatePropagation()" in source
+    assert "data-profile-username" in source
+    assert "data-profile-role" in source
+
+
 def test_netlify_keeps_browser_api_same_origin() -> None:
     config = (APP_ROOT.parent / "netlify.toml").read_text(encoding="utf-8")
     generator = read("scripts/generate-runtime-config.mjs")
