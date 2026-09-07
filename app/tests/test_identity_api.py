@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -235,3 +237,53 @@ def test_unknown_role_grants_no_admin_access() -> None:
         )
         assert response.status_code == 200
         assert client.get("/api/v1/admin/users").status_code == 403
+
+
+def test_org_scoped_admin_cannot_inject_scope_into_global_admin_endpoint() -> None:
+    organization_id = uuid4()
+    session = get_session_factory()()
+    seed_identity_catalog(session)
+    service = IdentityService(session, get_settings())
+    scoped_admin = service.create_user(
+        username="scoped.identity.admin",
+        display_name="Scoped Identity Admin",
+        password="scoped-identity-admin-123",
+        must_change_password=False,
+    )
+    service.assign_role(
+        user_id=scoped_admin.id,
+        role_code="identity_administrator",
+        actor_user_id=scoped_admin.id,
+        scope_type=ScopeType.ORGANIZATION,
+        scope_id=organization_id,
+    )
+    service.create_user(
+        username="other.tenant.user",
+        display_name="Other Tenant User",
+        password="other-tenant-user-123",
+        must_change_password=False,
+    )
+    session.commit()
+    session.close()
+
+    with TestClient(create_app()) as client:
+        login_response = client.post(
+            "/api/v1/auth/login",
+            json={
+                "username": "scoped.identity.admin",
+                "password": "scoped-identity-admin-123",
+            },
+        )
+        assert login_response.status_code == 200, login_response.text
+        assert any(
+            permission["scope_id"] == str(organization_id)
+            for permission in login_response.json()["permissions"]
+        )
+
+        assert client.get("/api/v1/admin/users").status_code == 403
+        injected = client.get(
+            "/api/v1/admin/users",
+            params={"organization_id": str(organization_id)},
+        )
+        assert injected.status_code == 403
+        assert injected.json()["detail"] == "permission denied"
