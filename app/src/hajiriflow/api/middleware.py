@@ -1,8 +1,89 @@
+import json
+import logging
+import re
 from collections.abc import Awaitable, Callable
+from time import monotonic
+from uuid import uuid4
 
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
+
+REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9._:-]{1,100}$")
+REQUEST_LOGGER = logging.getLogger("hajiriflow.request")
+
+
+def _request_id(request: Request) -> str:
+    supplied = request.headers.get("X-Request-ID", "").strip()
+    if REQUEST_ID_PATTERN.fullmatch(supplied):
+        return supplied
+    return uuid4().hex
+
+
+def _route_path(request: Request) -> str:
+    route = request.scope.get("route")
+    path = getattr(route, "path", None)
+    if isinstance(path, str) and path:
+        return path
+    return request.url.path
+
+
+def _log_request(
+    *,
+    request: Request,
+    request_id: str,
+    status_code: int,
+    duration_ms: int,
+    exception_type: str | None = None,
+) -> None:
+    payload: dict[str, str | int] = {
+        "duration_ms": duration_ms,
+        "event": "http_request",
+        "method": request.method,
+        "path": _route_path(request),
+        "request_id": request_id,
+        "status_code": status_code,
+    }
+    if exception_type:
+        payload["exception_type"] = exception_type
+    message = json.dumps(payload, separators=(",", ":"), sort_keys=True)
+    if status_code >= 500:
+        REQUEST_LOGGER.error(message)
+    else:
+        REQUEST_LOGGER.info(message)
+
+
+class RequestContextMiddleware(BaseHTTPMiddleware):
+    """Add request correlation without logging sensitive request contents."""
+
+    async def dispatch(
+        self,
+        request: Request,
+        call_next: Callable[[Request], Awaitable[Response]],
+    ) -> Response:
+        request_id = _request_id(request)
+        request.state.request_id = request_id
+        started_at = monotonic()
+        try:
+            response = await call_next(request)
+        except Exception as exc:
+            _log_request(
+                request=request,
+                request_id=request_id,
+                status_code=500,
+                duration_ms=max(0, round((monotonic() - started_at) * 1000)),
+                exception_type=type(exc).__name__,
+            )
+            raise
+
+        response.headers["X-Request-ID"] = request_id
+        _log_request(
+            request=request,
+            request_id=request_id,
+            status_code=response.status_code,
+            duration_ms=max(0, round((monotonic() - started_at) * 1000)),
+        )
+        return response
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
