@@ -7,6 +7,7 @@ from hajiriflow.api.health import router as health_router
 from hajiriflow.api.identity import router as identity_router
 from hajiriflow.api.middleware import SecurityHeadersMiddleware
 from hajiriflow.api.role_lifecycle import router as role_lifecycle_router
+from hajiriflow.api.workforce import router as workforce_router
 from hajiriflow.core.config import get_settings
 
 
@@ -33,6 +34,7 @@ def create_app() -> FastAPI:
     app.include_router(health_router)
     app.include_router(identity_router)
     app.include_router(role_lifecycle_router)
+    app.include_router(workforce_router)
     app.include_router(csrf_router)
     return app
 
