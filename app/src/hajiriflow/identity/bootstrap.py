@@ -27,6 +27,10 @@ PERMISSIONS = {
     "field_duty.read": "View organization field-duty requests.",
     "field_duty.approve": "Approve or reject field-duty requests.",
     "field_duty.request": "Request and view the signed-in employee's own field duty.",
+    "device.read": "View organization devices, diagnostics, inventory, and pull history.",
+    "device.manage": "Manage organization devices and encrypted device credentials.",
+    "device.pull": "Request device pulls and view their results.",
+    "device.mapping.manage": "Map device identities to employees.",
 }
 
 ROLES = {
@@ -61,6 +65,10 @@ ROLES = {
             "leave.approve",
             "field_duty.read",
             "field_duty.approve",
+            "device.read",
+            "device.manage",
+            "device.pull",
+            "device.mapping.manage",
         },
     },
     "employee": {
