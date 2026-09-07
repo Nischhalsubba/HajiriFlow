@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 
 import nepali_datetime
 
@@ -58,5 +58,5 @@ class BsDateService:
             month_name=first.strftime("%B"),
             days=days,
             first_ad_date=first_ad,
-            last_ad_date=following_ad.fromordinal(following_ad.toordinal() - 1),
+            last_ad_date=following_ad - timedelta(days=1),
         )
