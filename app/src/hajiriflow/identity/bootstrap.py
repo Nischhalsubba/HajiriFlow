@@ -11,6 +11,13 @@ PERMISSIONS = {
     "identity.user.manage": "Activate, disable, and update user accounts.",
     "identity.role.assign": "Assign roles to user accounts.",
     "identity.audit.read": "View redacted identity and access audit events.",
+    "organization.create": "Create an organization/company profile.",
+    "organization.read": "View organization structure and company settings.",
+    "organization.manage": "Manage organization structure and company settings.",
+    "employee.read": "View employees and effective workforce assignments.",
+    "employee.manage": "Manage employee lifecycle and organization assignments.",
+    "shift.read": "View shift definitions and effective assignments.",
+    "shift.manage": "Manage shift definitions and effective assignments.",
 }
 
 ROLES = {
@@ -26,6 +33,18 @@ ROLES = {
             "identity.user.manage",
             "identity.role.assign",
             "identity.audit.read",
+        },
+    },
+    "workforce_administrator": {
+        "name": "Workforce administrator",
+        "permissions": {
+            "organization.create",
+            "organization.read",
+            "organization.manage",
+            "employee.read",
+            "employee.manage",
+            "shift.read",
+            "shift.manage",
         },
     },
     "employee": {

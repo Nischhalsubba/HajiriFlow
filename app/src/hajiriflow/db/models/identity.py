@@ -37,7 +37,11 @@ class UserAccount(Base):
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="active")
     must_change_password: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     session_version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
-    employee_id: Mapped[UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
+    employee_id: Mapped[UUID | None] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("employees.id", ondelete="SET NULL"),
+        nullable=True,
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utc_now
     )
