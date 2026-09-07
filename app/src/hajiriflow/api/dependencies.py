@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import Depends, HTTPException, Request, status
+from fastapi import Depends, HTTPException, Path, Request, status
 from sqlalchemy.orm import Session
 
 from hajiriflow.core.config import Settings, get_settings
@@ -61,26 +61,57 @@ def current_identity(
     return RequestIdentity(principal=principal, raw_token=raw_token)
 
 
+def _require_permission(
+    identity: RequestIdentity,
+    permission: str,
+    *,
+    organization_id: UUID | None = None,
+) -> RequestIdentity:
+    if identity.principal.user.must_change_password:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="password change required",
+        )
+    if not has_permission(
+        identity.principal.grants,
+        permission,
+        organization_id=organization_id,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="permission denied",
+        )
+    return identity
+
+
 def require_permission(permission: str):
+    """Require a global permission for a non-organization-scoped endpoint.
+
+    Organization scope is intentionally not accepted from query parameters here. A route
+    that operates on organization-owned resources must use require_organization_permission
+    so the trusted scope comes from the route path itself.
+    """
+
     def dependency(
         identity: Annotated[RequestIdentity, Depends(current_identity)],
-        organization_id: UUID | None = None,
     ) -> RequestIdentity:
-        if identity.principal.user.must_change_password:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="password change required",
-            )
-        if not has_permission(
-            identity.principal.grants,
+        return _require_permission(identity, permission)
+
+    return dependency
+
+
+def require_organization_permission(permission: str):
+    """Require permission for the explicit organization_id path parameter."""
+
+    def dependency(
+        organization_id: Annotated[UUID, Path()],
+        identity: Annotated[RequestIdentity, Depends(current_identity)],
+    ) -> RequestIdentity:
+        return _require_permission(
+            identity,
             permission,
             organization_id=organization_id,
-        ):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="permission denied",
-            )
-        return identity
+        )
 
     return dependency
 
