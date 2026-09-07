@@ -13,6 +13,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     Uuid,
+    event,
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -193,3 +194,17 @@ class AuditEvent(Base):
     occurred_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utc_now
     )
+
+
+@event.listens_for(AuditEvent, "before_update")
+def _prevent_audit_event_update(
+    _mapper: object, _connection: object, _target: AuditEvent
+) -> None:
+    raise RuntimeError("Audit events are immutable")
+
+
+@event.listens_for(AuditEvent, "before_delete")
+def _prevent_audit_event_delete(
+    _mapper: object, _connection: object, _target: AuditEvent
+) -> None:
+    raise RuntimeError("Audit events are immutable")
