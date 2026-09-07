@@ -9,6 +9,8 @@ from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
 
+from hajiriflow.core.request_context import bind_request_id, reset_request_id
+
 REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9._:-]{1,100}$")
 REQUEST_LOGGER = logging.getLogger("hajiriflow.request")
 
@@ -63,27 +65,31 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
     ) -> Response:
         request_id = _request_id(request)
         request.state.request_id = request_id
+        context_token = bind_request_id(request_id)
         started_at = monotonic()
         try:
-            response = await call_next(request)
-        except Exception as exc:
+            try:
+                response = await call_next(request)
+            except Exception as exc:
+                _log_request(
+                    request=request,
+                    request_id=request_id,
+                    status_code=500,
+                    duration_ms=max(0, round((monotonic() - started_at) * 1000)),
+                    exception_type=type(exc).__name__,
+                )
+                raise
+
+            response.headers["X-Request-ID"] = request_id
             _log_request(
                 request=request,
                 request_id=request_id,
-                status_code=500,
+                status_code=response.status_code,
                 duration_ms=max(0, round((monotonic() - started_at) * 1000)),
-                exception_type=type(exc).__name__,
             )
-            raise
-
-        response.headers["X-Request-ID"] = request_id
-        _log_request(
-            request=request,
-            request_id=request_id,
-            status_code=response.status_code,
-            duration_ms=max(0, round((monotonic() - started_at) * 1000)),
-        )
-        return response
+            return response
+        finally:
+            reset_request_id(context_token)
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
