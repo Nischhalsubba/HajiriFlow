@@ -60,15 +60,17 @@ class DevicePullScheduler:
         return tuple(due)
 
     def run_once(self, *, now: datetime | None = None) -> tuple[DevicePullSession, ...]:
+        observed_at = now or utc_now()
         results: list[DevicePullSession] = []
-        for device in self.due_devices(now=now):
+        for device in self.due_devices(now=observed_at):
             try:
                 adapter = self.adapter_resolver(device)
-            except Exception:
+            except Exception as exc:
                 adapter = None
-                self.logger.exception(
-                    "Device adapter resolution failed",
-                    extra={"device_id": str(device.id)},
+                self.logger.error(
+                    "Device adapter resolution failed: error_type=%s device_id=%s",
+                    type(exc).__name__,
+                    device.id,
                 )
             if adapter is None:
                 result = DevicePullSession(
@@ -79,8 +81,8 @@ class DevicePullScheduler:
                     attempt_count=1,
                     error_code="adapter_unavailable",
                     error_detail="No supported adapter is configured for this device.",
-                    started_at=now or utc_now(),
-                    ended_at=now or utc_now(),
+                    started_at=observed_at,
+                    ended_at=observed_at,
                 )
                 self.session.add(result)
                 self.session.flush()
