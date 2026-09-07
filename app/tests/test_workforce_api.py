@@ -1,4 +1,5 @@
 from datetime import date
+from uuid import UUID
 
 import pytest
 from fastapi.testclient import TestClient
@@ -70,7 +71,7 @@ def seed_scoped_workforce_admin(organization_id: str) -> None:
         role_code="workforce_administrator",
         actor_user_id=user.id,
         scope_type=ScopeType.ORGANIZATION,
-        scope_id=organization_id,
+        scope_id=UUID(organization_id),
     )
     session.commit()
     session.close()
