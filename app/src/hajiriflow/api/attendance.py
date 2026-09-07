@@ -13,7 +13,7 @@ from hajiriflow.api.dependencies import (
     require_csrf,
     require_organization_permission,
 )
-from hajiriflow.attendance.service import AttendanceService, CALCULATION_VERSION
+from hajiriflow.attendance.service import CALCULATION_VERSION, AttendanceService
 from hajiriflow.db.models.attendance import (
     AttendanceCorrection,
     AttendanceHistory,
