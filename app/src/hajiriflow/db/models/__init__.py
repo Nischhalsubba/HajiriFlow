@@ -29,6 +29,12 @@ from hajiriflow.db.models.identity import (
     UserAccount,
     UserRole,
 )
+from hajiriflow.db.models.payroll import (
+    PayrollHistory,
+    PayrollLine,
+    PayrollPeriod,
+    PayrollRun,
+)
 from hajiriflow.db.models.workforce import (
     CompanyProfile,
     Employee,
@@ -60,6 +66,10 @@ __all__ = [
     "LeaveRequest",
     "OrganizationCalendarSettings",
     "OrganizationNode",
+    "PayrollHistory",
+    "PayrollLine",
+    "PayrollPeriod",
+    "PayrollRun",
     "Permission",
     "RawPunch",
     "Role",
