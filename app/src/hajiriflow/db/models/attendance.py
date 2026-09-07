@@ -109,7 +109,8 @@ class AttendanceCorrection(Base):
         ),
         CheckConstraint(
             "(status = 'pending' AND decided_at IS NULL AND decided_by IS NULL) OR "
-            "(status IN ('approved', 'rejected') AND decided_at IS NOT NULL AND decided_by IS NOT NULL)",
+            "(status IN ('approved', 'rejected') AND decided_at IS NOT NULL "
+            "AND decided_by IS NOT NULL)",
             name="attendance_correction_decision_consistency",
         ),
         Index(
