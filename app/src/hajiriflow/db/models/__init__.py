@@ -1,3 +1,8 @@
+from hajiriflow.db.models.attendance import (
+    AttendanceCorrection,
+    AttendanceHistory,
+    AttendanceRecord,
+)
 from hajiriflow.db.models.calendar_leave import (
     FieldDutyRequest,
     Holiday,
@@ -34,6 +39,9 @@ from hajiriflow.db.models.workforce import (
 )
 
 __all__ = [
+    "AttendanceCorrection",
+    "AttendanceHistory",
+    "AttendanceRecord",
     "AuditEvent",
     "AuthenticationAttempt",
     "AuthSession",
