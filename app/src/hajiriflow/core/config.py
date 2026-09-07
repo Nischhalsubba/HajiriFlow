@@ -6,7 +6,6 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-
 KNOWN_UNSAFE_SESSION_SECRETS = {
     "replace-with-at-least-32-random-characters",
     "change-me-change-me-change-me-change-me",
