@@ -239,7 +239,9 @@ class WorkforceService:
                 )
             )
             if overlap:
-                raise ValueError("primary organization assignment overlaps an existing period")
+                raise ValueError(
+                    "primary organization assignment overlaps an existing period"
+                )
         assignment = EmployeeOrganizationAssignment(
             organization_id=organization_id,
             employee_id=employee_id,
@@ -385,14 +387,21 @@ class WorkforceService:
         organization_id: UUID,
         employee_id: UUID,
         on_date: date,
-    ) -> tuple[EmployeeOrganizationAssignment | None, ShiftAssignment | None, Shift | None]:
+    ) -> tuple[
+        EmployeeOrganizationAssignment | None,
+        ShiftAssignment | None,
+        Shift | None,
+    ]:
         employee = self.session.get(Employee, employee_id)
         if not employee or employee.organization_id != organization_id:
             raise LookupError("employee not found")
-        active_range = lambda model: and_(
-            model.starts_on <= on_date,
-            or_(model.ends_on.is_(None), model.ends_on >= on_date),
-        )
+
+        def active_range(model):
+            return and_(
+                model.starts_on <= on_date,
+                or_(model.ends_on.is_(None), model.ends_on >= on_date),
+            )
+
         org_assignment = self.session.scalar(
             select(EmployeeOrganizationAssignment)
             .where(
@@ -423,5 +432,9 @@ class WorkforceService:
                 .order_by(ShiftAssignment.starts_on.desc())
                 .limit(1)
             )
-        shift = self.session.get(Shift, shift_assignment.shift_id) if shift_assignment else None
+        shift = (
+            self.session.get(Shift, shift_assignment.shift_id)
+            if shift_assignment
+            else None
+        )
         return org_assignment, shift_assignment, shift
