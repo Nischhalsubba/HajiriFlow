@@ -49,15 +49,22 @@ def _assert_safe_metadata(value: Mapping[str, object]) -> None:
 
 
 def punch_fingerprint(device_id: UUID, punch: PunchRecord) -> str:
-    identity = {
-        "device_id": str(device_id),
-        "external_event_id": punch.external_event_id,
-        "device_user_identifier": punch.device_user_identifier,
-        "occurred_at": punch.occurred_at.astimezone(UTC).isoformat(),
-        "punch_kind": punch.punch_kind,
-        "verification_method": punch.verification_method,
-        "evidence": punch.evidence,
-    }
+    if punch.external_event_id:
+        identity = {
+            "device_id": str(device_id),
+            "external_event_id": punch.external_event_id,
+        }
+    else:
+        if punch.occurred_at.tzinfo is None:
+            raise ValueError("device punch timestamps must include a timezone")
+        identity = {
+            "device_id": str(device_id),
+            "device_user_identifier": punch.device_user_identifier,
+            "occurred_at": punch.occurred_at.astimezone(UTC).isoformat(),
+            "punch_kind": punch.punch_kind,
+            "verification_method": punch.verification_method,
+            "evidence": punch.evidence,
+        }
     return hashlib.sha256(_canonical_json(identity).encode()).hexdigest()
 
 
@@ -126,6 +133,8 @@ class DevicePlatformService:
             _assert_safe_metadata(punch.evidence)
             if punch.punch_kind not in {"in", "out", "break", "unknown"}:
                 raise ValueError(f"unsupported punch kind: {punch.punch_kind}")
+            if punch.occurred_at.tzinfo is None:
+                raise ValueError("device punch timestamps must include a timezone")
             fingerprint = punch_fingerprint(device.id, punch)
             exists = self.session.scalar(
                 select(RawPunch.id).where(
