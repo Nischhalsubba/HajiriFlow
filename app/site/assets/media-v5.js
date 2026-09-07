@@ -1,7 +1,6 @@
 (() => {
   "use strict";
 
-  const PHOTO_STORAGE_KEY = "hajiriflow_employee_photos_v1";
   const AVATAR_SELECTOR = ".person-avatar, .user-avatar, .avatar-button";
   const UNSPLASH_PARAMS = "auto=format&fit=crop&crop=faces&w=320&h=320&q=82";
   const PORTRAIT_IDS = [
@@ -44,6 +43,7 @@
     "photo-1548142813-c348350df52b",
     "photo-1522075469751-3a6694fb2f61",
   ];
+  const customPhotos = new Map();
 
   function normalizeName(value) {
     return String(value || "HajiriFlow user").trim().replace(/\s+/g, " ");
@@ -72,20 +72,8 @@
     return normalizeName(name).toLocaleLowerCase("en-US");
   }
 
-  function readPhotoMap() {
-    try {
-      return JSON.parse(window.localStorage.getItem(PHOTO_STORAGE_KEY) || "{}") || {};
-    } catch {
-      return {};
-    }
-  }
-
-  function writePhotoMap(value) {
-    window.localStorage.setItem(PHOTO_STORAGE_KEY, JSON.stringify(value));
-  }
-
   function customPhoto(name) {
-    return readPhotoMap()[storageKey(name)] || null;
+    return customPhotos.get(storageKey(name)) || null;
   }
 
   function portraitUrl(name, offset = 0) {
@@ -128,16 +116,15 @@
   }
 
   function setPhoto(name, dataUrl) {
-    const photos = readPhotoMap();
-    photos[storageKey(name)] = dataUrl;
-    writePhotoMap(photos);
+    if (!/^data:image\/(jpeg|png|webp);base64,/i.test(String(dataUrl || ""))) {
+      throw new TypeError("Custom avatar data must be a supported image data URL.");
+    }
+    customPhotos.set(storageKey(name), String(dataUrl));
     refreshName(name);
   }
 
   function removePhoto(name) {
-    const photos = readPhotoMap();
-    delete photos[storageKey(name)];
-    writePhotoMap(photos);
+    customPhotos.delete(storageKey(name));
     refreshName(name);
   }
 
@@ -148,7 +135,9 @@
       clearAvatar(element);
       enhanceAvatar(element);
     });
-    window.dispatchEvent(new CustomEvent("hajiriflow:photo-updated", { detail: { name: normalized } }));
+    window.dispatchEvent(
+      new CustomEvent("hajiriflow:photo-updated", { detail: { name: normalized } }),
+    );
   }
 
   function enhanceAvatar(element) {
@@ -174,7 +163,9 @@
     image.addEventListener("load", () => {
       element.classList.remove("is-loading", "is-error");
       element.classList.add("is-loaded");
-      window.dispatchEvent(new CustomEvent("hajiriflow:avatar-loaded", { detail: { element, image } }));
+      window.dispatchEvent(
+        new CustomEvent("hajiriflow:avatar-loaded", { detail: { element, image } }),
+      );
     });
 
     image.addEventListener("error", () => {
