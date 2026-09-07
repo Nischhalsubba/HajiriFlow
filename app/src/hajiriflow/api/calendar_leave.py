@@ -1,3 +1,4 @@
+from dataclasses import asdict
 from datetime import date
 from decimal import Decimal
 from typing import Annotated, Literal
@@ -440,7 +441,7 @@ def workday_decision(
             work_date=work_date,
             employee_id=employee_id,
         )
-        return WorkdayDecisionView(**item.__dict__)
+        return WorkdayDecisionView(**asdict(item))
     except (LookupError, ValueError) as exc:
         raise api_error(exc) from exc
 
@@ -550,7 +551,7 @@ def own_leave_balance(
             leave_policy_id=leave_policy_id,
             period_year=period_year,
         )
-        return LeaveBalanceView(**balance.__dict__)
+        return LeaveBalanceView(**asdict(balance))
     except (LookupError, ValueError) as exc:
         raise api_error(exc) from exc
 
