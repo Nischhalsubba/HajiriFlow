@@ -23,19 +23,24 @@ def test_employee_portraits_use_free_licensed_photographic_source() -> None:
     assert "object-position" in CSS
 
 
-def test_employee_photo_upload_has_validation_and_persistence() -> None:
-    assert "image/jpeg,image/png,image/webp" in PRODUCTION
-    assert "MAX_PHOTO_BYTES" in PRODUCTION
-    assert "canvas.toDataURL" in PRODUCTION
-    assert "HFMedia?.setPhoto" in PRODUCTION
-    assert "HFMedia?.removePhoto" in PRODUCTION
-    assert "hajiriflow_employee_photos_v1" in MEDIA
+def test_employee_photo_picker_is_disabled_in_production_and_not_persisted() -> None:
+    assert "image/jpeg,image/png,image/webp" not in PRODUCTION
+    assert "MAX_PHOTO_BYTES" not in PRODUCTION
+    assert "canvas.toDataURL" not in PRODUCTION
+    assert "change-employee-photo" in PRODUCTION
+    assert "remove-employee-photo" in PRODUCTION
+    assert ".profile-photo-actions" in PRODUCTION
+    assert "localStorage" not in MEDIA
+    assert "sessionStorage" not in MEDIA
+    assert "hajiriflow_employee_photos_v1" not in MEDIA
+    assert "const customPhotos = new Map();" in MEDIA
 
 
 def test_demo_language_and_destructive_demo_controls_are_removed() -> None:
     assert '"HajiriFlow Demo", "HajiriFlow"' in PRODUCTION
     assert '"Live demo workspace", "Workforce operations"' in PRODUCTION
-    assert 'new Set(["regenerate-demo", "confirm-regenerate"])' in PRODUCTION
+    assert '"regenerate-demo"' in PRODUCTION
+    assert '"confirm-regenerate"' in PRODUCTION
     assert "provider-card.muted" in PRODUCTION
 
 
