@@ -91,6 +91,7 @@ class AttendanceService:
             snapshot=redact_audit_payload(snapshot or _snapshot(record)),
         )
         self.session.add(history)
+        self.session.flush()
         return history
 
     def _audit(
