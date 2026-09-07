@@ -492,7 +492,7 @@ def employee_context(
         Depends(require_organization_permission("employee.read")),
     ],
     session: Annotated[Session, Depends(get_db)],
-    on_date: date = Query(),
+    on_date: Annotated[date, Query()],
 ) -> EmployeeContextView:
     try:
         org_assignment, shift_assignment, shift = WorkforceService(
