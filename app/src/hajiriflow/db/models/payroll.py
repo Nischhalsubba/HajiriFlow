@@ -49,7 +49,12 @@ class PayrollPeriod(Base):
             "code",
             name="uq_payroll_period_org_code",
         ),
-        Index("ix_payroll_periods_org_dates", "organization_id", "starts_on", "ends_on"),
+        Index(
+            "ix_payroll_periods_org_dates",
+            "organization_id",
+            "starts_on",
+            "ends_on",
+        ),
         Index("ix_payroll_periods_org_status", "organization_id", "status"),
     )
 
@@ -91,7 +96,8 @@ class PayrollRun(Base):
     __tablename__ = "payroll_runs"
     __table_args__ = (
         CheckConstraint(
-            "status IN ('draft', 'pending_approval', 'approved', 'posted', 'reversed')",
+            "status IN ('draft', 'pending_approval', 'approved', 'posted', "
+            "'reversal_pending', 'reversed')",
             name="payroll_run_valid_status",
         ),
         CheckConstraint("sequence >= 1", name="payroll_run_positive_sequence"),
@@ -136,6 +142,14 @@ class PayrollRun(Base):
         nullable=True,
     )
     posted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    reversal_requested_by: Mapped[UUID | None] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("user_accounts.id", ondelete="RESTRICT"),
+        nullable=True,
+    )
+    reversal_requested_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     reversed_by: Mapped[UUID | None] = mapped_column(
         Uuid(as_uuid=True),
         ForeignKey("user_accounts.id", ondelete="RESTRICT"),
@@ -143,6 +157,11 @@ class PayrollRun(Base):
     )
     reversed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     reversal_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    reversal_of_run_id: Mapped[UUID | None] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("payroll_runs.id", ondelete="RESTRICT"),
+        nullable=True,
+    )
     reversal_run_id: Mapped[UUID | None] = mapped_column(
         Uuid(as_uuid=True),
         ForeignKey("payroll_runs.id", ondelete="RESTRICT"),
@@ -153,8 +172,15 @@ class PayrollRun(Base):
 class PayrollLine(Base):
     __tablename__ = "payroll_lines"
     __table_args__ = (
+        CheckConstraint(
+            "direction IN ('payroll', 'reversal')",
+            name="payroll_line_valid_direction",
+        ),
         CheckConstraint("gross_amount >= 0", name="payroll_line_nonnegative_gross"),
-        CheckConstraint("deduction_amount >= 0", name="payroll_line_nonnegative_deduction"),
+        CheckConstraint(
+            "deduction_amount >= 0",
+            name="payroll_line_nonnegative_deduction",
+        ),
         CheckConstraint("tax_amount >= 0", name="payroll_line_nonnegative_tax"),
         CheckConstraint("net_amount >= 0", name="payroll_line_nonnegative_net"),
         UniqueConstraint("run_id", "employee_id", name="uq_payroll_line_run_employee"),
@@ -172,6 +198,7 @@ class PayrollLine(Base):
         ForeignKey("employees.id", ondelete="RESTRICT"),
         nullable=False,
     )
+    direction: Mapped[str] = mapped_column(String(16), nullable=False, default="payroll")
     currency: Mapped[str] = mapped_column(String(3), nullable=False, default="NPR")
     gross_amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
     deduction_amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
