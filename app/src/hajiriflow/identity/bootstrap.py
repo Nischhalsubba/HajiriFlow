@@ -31,6 +31,13 @@ PERMISSIONS = {
     "device.manage": "Manage organization devices and encrypted device credentials.",
     "device.pull": "Request device pulls and view their results.",
     "device.mapping.manage": "Map device identities to employees.",
+    "attendance.read": "View normalized attendance and correction history.",
+    "attendance.manage": "Calculate attendance and request controlled corrections.",
+    "attendance.approve": "Approve or reject attendance corrections.",
+    "payroll.read": "View organization payroll periods, runs, and employee lines.",
+    "payroll.manage": "Prepare payroll periods, runs, lines, and reversal requests.",
+    "payroll.approve": "Lock periods and approve, post, reverse, or close payroll.",
+    "payroll.export": "Export posted payroll within authorized organization scope.",
 }
 
 ROLES = {
@@ -69,6 +76,22 @@ ROLES = {
             "device.manage",
             "device.pull",
             "device.mapping.manage",
+            "attendance.read",
+            "attendance.manage",
+            "attendance.approve",
+        },
+    },
+    "payroll_administrator": {
+        "name": "Payroll administrator",
+        "permissions": {
+            "employee.read",
+            "calendar.read",
+            "leave.read",
+            "attendance.read",
+            "payroll.read",
+            "payroll.manage",
+            "payroll.approve",
+            "payroll.export",
         },
     },
     "employee": {
