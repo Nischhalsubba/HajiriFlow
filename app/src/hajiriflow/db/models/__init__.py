@@ -3,6 +3,10 @@ from hajiriflow.db.models.attendance import (
     AttendanceHistory,
     AttendanceRecord,
 )
+from hajiriflow.db.models.biometric import (
+    BiometricConsentEvent,
+    BiometricDeletionRequest,
+)
 from hajiriflow.db.models.calendar_leave import (
     FieldDutyRequest,
     Holiday,
@@ -51,6 +55,8 @@ __all__ = [
     "AuditEvent",
     "AuthenticationAttempt",
     "AuthSession",
+    "BiometricConsentEvent",
+    "BiometricDeletionRequest",
     "CompanyProfile",
     "Device",
     "DeviceCredential",

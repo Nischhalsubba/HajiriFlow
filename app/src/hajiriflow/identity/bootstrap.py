@@ -31,6 +31,15 @@ PERMISSIONS = {
     "device.manage": "Manage organization devices and encrypted device credentials.",
     "device.pull": "Request device pulls and view their results.",
     "device.mapping.manage": "Map device identities to employees.",
+    "biometric.consent.read": (
+        "View employee biometric consent status without biometric material."
+    ),
+    "biometric.consent.manage": (
+        "Record employee biometric consent, decline, and revocation."
+    ),
+    "biometric.deletion.manage": (
+        "Request and attest device-side biometric enrollment deletion."
+    ),
     "attendance.read": "View normalized attendance and correction history.",
     "attendance.manage": "Calculate attendance and request controlled corrections.",
     "attendance.approve": "Approve or reject attendance corrections.",
@@ -79,6 +88,16 @@ ROLES = {
             "attendance.read",
             "attendance.manage",
             "attendance.approve",
+        },
+    },
+    "biometric_administrator": {
+        "name": "Biometric administrator",
+        "permissions": {
+            "employee.read",
+            "device.read",
+            "biometric.consent.read",
+            "biometric.consent.manage",
+            "biometric.deletion.manage",
         },
     },
     "payroll_administrator": {
