@@ -6,6 +6,14 @@ from hajiriflow.db.models.calendar_leave import (
     LeaveRequest,
     OrganizationCalendarSettings,
 )
+from hajiriflow.db.models.device import (
+    Device,
+    DeviceCredential,
+    DeviceEmployeeMapping,
+    DevicePullSession,
+    DeviceUser,
+    RawPunch,
+)
 from hajiriflow.db.models.identity import (
     AuditEvent,
     AuthenticationAttempt,
@@ -30,6 +38,11 @@ __all__ = [
     "AuthenticationAttempt",
     "AuthSession",
     "CompanyProfile",
+    "Device",
+    "DeviceCredential",
+    "DeviceEmployeeMapping",
+    "DevicePullSession",
+    "DeviceUser",
     "Employee",
     "EmployeeOrganizationAssignment",
     "FieldDutyRequest",
@@ -40,6 +53,7 @@ __all__ = [
     "OrganizationCalendarSettings",
     "OrganizationNode",
     "Permission",
+    "RawPunch",
     "Role",
     "RolePermission",
     "Shift",
