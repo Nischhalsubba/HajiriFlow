@@ -1,3 +1,11 @@
+from hajiriflow.db.models.calendar_leave import (
+    FieldDutyRequest,
+    Holiday,
+    LeaveAllocation,
+    LeavePolicy,
+    LeaveRequest,
+    OrganizationCalendarSettings,
+)
 from hajiriflow.db.models.identity import (
     AuditEvent,
     AuthenticationAttempt,
@@ -24,6 +32,12 @@ __all__ = [
     "CompanyProfile",
     "Employee",
     "EmployeeOrganizationAssignment",
+    "FieldDutyRequest",
+    "Holiday",
+    "LeaveAllocation",
+    "LeavePolicy",
+    "LeaveRequest",
+    "OrganizationCalendarSettings",
     "OrganizationNode",
     "Permission",
     "Role",

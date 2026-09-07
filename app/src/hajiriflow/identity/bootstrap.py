@@ -18,6 +18,15 @@ PERMISSIONS = {
     "employee.manage": "Manage employee lifecycle and organization assignments.",
     "shift.read": "View shift definitions and effective assignments.",
     "shift.manage": "Manage shift definitions and effective assignments.",
+    "calendar.read": "View shared workday, holiday, and BS calendar decisions.",
+    "calendar.manage": "Manage weekends and organization holidays.",
+    "leave.read": "View organization leave policies, balances, and requests.",
+    "leave.manage": "Manage leave policies and employee allocations.",
+    "leave.approve": "Approve or reject employee leave requests.",
+    "leave.request": "Request and view the signed-in employee's own leave.",
+    "field_duty.read": "View organization field-duty requests.",
+    "field_duty.approve": "Approve or reject field-duty requests.",
+    "field_duty.request": "Request and view the signed-in employee's own field duty.",
 }
 
 ROLES = {
@@ -45,11 +54,22 @@ ROLES = {
             "employee.manage",
             "shift.read",
             "shift.manage",
+            "calendar.read",
+            "calendar.manage",
+            "leave.read",
+            "leave.manage",
+            "leave.approve",
+            "field_duty.read",
+            "field_duty.approve",
         },
     },
     "employee": {
         "name": "Employee",
-        "permissions": set(),
+        "permissions": {
+            "calendar.read",
+            "leave.request",
+            "field_duty.request",
+        },
     },
 }
 

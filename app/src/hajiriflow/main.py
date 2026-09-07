@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from hajiriflow import __version__
+from hajiriflow.api.calendar_leave import router as calendar_leave_router
 from hajiriflow.api.csrf import router as csrf_router
 from hajiriflow.api.health import router as health_router
 from hajiriflow.api.identity import router as identity_router
@@ -28,13 +29,14 @@ def create_app() -> FastAPI:
         CORSMiddleware,
         allow_origins=settings.allowed_origins,
         allow_credentials=True,
-        allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["Authorization", "Content-Type", "X-CSRF-Token"],
     )
     app.include_router(health_router)
     app.include_router(identity_router)
     app.include_router(role_lifecycle_router)
     app.include_router(workforce_router)
+    app.include_router(calendar_leave_router)
     app.include_router(csrf_router)
     return app
 
