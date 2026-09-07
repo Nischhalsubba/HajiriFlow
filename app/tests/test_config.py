@@ -3,7 +3,6 @@ from pydantic import ValidationError
 
 from hajiriflow.core.config import Settings
 
-
 VALID_SECRET = "a-valid-secret-that-is-longer-than-thirty-two-characters"
 
 
