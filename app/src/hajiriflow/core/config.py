@@ -119,9 +119,11 @@ class Settings(BaseSettings):
 
         if unsafe_origins:
             joined = ", ".join(unsafe_origins)
-            raise ValueError(
-                f"{self.environment} requires canonical HTTPS, non-loopback CORS origins; unsafe: {joined}"
+            message = (
+                f"{self.environment} requires canonical HTTPS, non-loopback CORS origins; "
+                f"unsafe: {joined}"
             )
+            raise ValueError(message)
 
         return self
 
