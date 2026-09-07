@@ -122,6 +122,17 @@ def clear_auth_cookies(response: Response, settings: Settings) -> None:
     response.delete_cookie(settings.csrf_cookie_name, path="/")
 
 
+def commit_visible_write(session: Session) -> None:
+    """Commit before response serialization so a follow-up request can see the write.
+
+    FastAPI yield-dependency cleanup can happen after a response is already available to
+    the client. Identity flows commonly chain requests (create user -> assign role), so
+    these writes must become visible before the success response is returned.
+    """
+
+    session.commit()
+
+
 @router.post("/auth/login", response_model=SessionView)
 def login(
     payload: LoginRequest,
@@ -160,7 +171,7 @@ def login(
         settings=settings,
     )
     grants = service.grants_for_user(created.user.id)
-    return SessionView(
+    view = SessionView(
         user=user_view(created.user),
         expires_at=created.session.expires_at,
         permissions=[
@@ -173,6 +184,8 @@ def login(
         ],
         csrf_token=csrf_token,
     )
+    commit_visible_write(session)
+    return view
 
 
 @router.get("/auth/me", response_model=SessionView)
@@ -204,6 +217,7 @@ def logout(
         identity.principal.session.id,
         identity.principal.user.id,
     )
+    commit_visible_write(session)
     clear_auth_cookies(response, settings)
 
 
@@ -228,6 +242,7 @@ def change_password(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(exc) or "password change failed",
         ) from exc
+    commit_visible_write(session)
     clear_auth_cookies(response, settings)
 
 
@@ -266,7 +281,9 @@ def create_user(
             status_code=status.HTTP_409_CONFLICT,
             detail="username already exists" if isinstance(exc, DuplicateUsername) else str(exc),
         ) from exc
-    return user_view(user)
+    view = user_view(user)
+    commit_visible_write(session)
+    return view
 
 
 @router.patch("/admin/users/{user_id}/status", response_model=UserView)
@@ -303,7 +320,9 @@ def set_user_status(
         raise HTTPException(status_code=404, detail="user not found") from exc
     except InvalidAccountStatus as exc:
         raise HTTPException(status_code=400, detail="invalid account status") from exc
-    return user_view(user)
+    view = user_view(user)
+    commit_visible_write(session)
+    return view
 
 
 @router.post("/admin/users/{user_id}/roles", status_code=status.HTTP_201_CREATED)
@@ -337,4 +356,6 @@ def assign_role(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return {"assignment_id": str(assignment.id)}
+    assignment_id = str(assignment.id)
+    commit_visible_write(session)
+    return {"assignment_id": assignment_id}
