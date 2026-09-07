@@ -1,3 +1,3 @@
-from hajiriflow.attendance.service import AttendanceService, CALCULATION_VERSION
+from hajiriflow.attendance.service import CALCULATION_VERSION, AttendanceService
 
 __all__ = ["AttendanceService", "CALCULATION_VERSION"]
