@@ -17,6 +17,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
+from hajiriflow.core.request_context import current_request_id
 from hajiriflow.db.base import Base
 
 
@@ -194,6 +195,14 @@ class AuditEvent(Base):
     occurred_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utc_now
     )
+
+
+@event.listens_for(AuditEvent, "before_insert")
+def _populate_audit_request_id(
+    _mapper: object, _connection: object, target: AuditEvent
+) -> None:
+    if target.request_id is None:
+        target.request_id = current_request_id()
 
 
 @event.listens_for(AuditEvent, "before_update")
