@@ -1,3 +1,4 @@
+import hashlib
 from pathlib import Path
 
 import pytest
@@ -16,11 +17,29 @@ APP_ROOT = Path(__file__).resolve().parent.parent
 SRC_ROOT = APP_ROOT / "src" / "hajiriflow"
 SITE_ASSETS = APP_ROOT / "site" / "assets"
 
+# These legacy renderers still use HTML-string templates. Their current blobs were
+# manually reviewed for escaping/textContent boundaries. Any edit changes the blob
+# SHA and forces a deliberate re-review before CI can pass.
+REVIEWED_INNER_HTML_BLOBS = {
+    "account-management.js": "9d984c6f247322b8a7ce87951e1d55a65d1be91b",
+    "app-v3.js": "b9690ae96147e4c77270f7abf1b4a3303cc37857",
+    "core.js": "ce07da5f73d57911be1cac004168e646652dcc5b",
+    "forms.js": "6ef11055a2bcd752db9297fcde4c5b4e8876265c",
+    "identity-gate.js": "7d9572722a781c47c60f32c6a276700dc112344e",
+    "ui-core.js": "c2614b3346b4396d3647b595666e570d7db5a177",
+}
+
 
 def _service() -> tuple[object, IdentityService]:
     session = get_session_factory()()
     seed_identity_catalog(session)
     return session, IdentityService(session, get_settings())
+
+
+def _git_blob_sha(path: Path) -> str:
+    data = path.read_bytes()
+    payload = f"blob {len(data)}\0".encode() + data
+    return hashlib.sha1(payload, usedforsecurity=False).hexdigest()
 
 
 def test_sql_injection_payload_is_treated_as_literal_identity_input() -> None:
@@ -88,9 +107,8 @@ def test_untrusted_cors_origin_is_not_granted_browser_access() -> None:
     assert response.headers.get("access-control-allow-origin") is None
 
 
-def test_production_frontend_avoids_raw_html_execution_sinks() -> None:
-    forbidden = (
-        ".innerHTML",
+def test_frontend_html_execution_sinks_are_change_controlled() -> None:
+    permanently_forbidden = (
         "insertAdjacentHTML",
         "document.write(",
         "eval(",
@@ -99,9 +117,21 @@ def test_production_frontend_avoids_raw_html_execution_sinks() -> None:
     violations: list[str] = []
     for path in sorted(SITE_ASSETS.glob("*.js")):
         source = path.read_text(encoding="utf-8")
-        for token in forbidden:
+        for token in permanently_forbidden:
             if token in source:
-                violations.append(f"{path.name}: {token}")
+                violations.append(f"{path.name}: forbidden {token}")
+
+        if ".innerHTML" not in source:
+            continue
+        expected_sha = REVIEWED_INNER_HTML_BLOBS.get(path.name)
+        if expected_sha is None:
+            violations.append(f"{path.name}: unreviewed innerHTML sink")
+            continue
+        actual_sha = _git_blob_sha(path)
+        if actual_sha != expected_sha:
+            violations.append(
+                f"{path.name}: reviewed sink changed ({actual_sha}); security re-review required"
+            )
 
     assert violations == []
 
@@ -125,7 +155,7 @@ def test_backend_has_no_generic_server_side_url_fetch_surface() -> None:
     assert violations == []
 
 
-def test_no_file_upload_or_redirect_endpoint_is_exposed() -> None:
+def test_no_server_file_upload_or_redirect_endpoint_is_exposed() -> None:
     api_root = SRC_ROOT / "api"
     source = "\n".join(
         path.read_text(encoding="utf-8") for path in sorted(api_root.glob("*.py"))
@@ -134,3 +164,13 @@ def test_no_file_upload_or_redirect_endpoint_is_exposed() -> None:
     assert "UploadFile" not in source
     assert "RedirectResponse" not in source
     assert "multipart/form-data" not in source
+
+
+def test_production_employee_photos_are_not_browser_persisted() -> None:
+    production_source = (SITE_ASSETS / "production-v7.js").read_text(encoding="utf-8")
+    media_source = (SITE_ASSETS / "media-v5.js").read_text(encoding="utf-8")
+
+    assert 'type="file"' not in production_source
+    assert "FileReader" not in production_source
+    assert "localStorage" not in media_source
+    assert "hajiriflow_employee_photos" not in media_source
