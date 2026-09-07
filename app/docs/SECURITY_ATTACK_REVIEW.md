@@ -12,9 +12,11 @@ This review records the controls present in the current HajiriFlow codebase and 
 
 **Current exposure:** the static authenticated workspace renders data in the browser.
 
-**Controls:** production JavaScript is guarded against direct raw-HTML execution sinks (`innerHTML`, `insertAdjacentHTML`, `document.write`, `eval`, and `new Function`). Protected API responses also receive a restrictive CSP. The CI contract scans every production JavaScript asset so a newly introduced sink requires an explicit security review rather than silently landing.
+**Controls:** `insertAdjacentHTML`, `document.write`, `eval`, and `new Function` are forbidden across production JavaScript by CI. Six legacy renderers still use `innerHTML` for application-owned HTML templates: `account-management.js`, `app-v3.js`, `core.js`, `forms.js`, `identity-gate.js`, and `ui-core.js`. Their current Git blob hashes are frozen in `test_attack_surface_contracts.py` after review of their escaping/textContent boundaries. Any edit to one of those files changes its blob hash and fails CI until the HTML sink is reviewed again.
 
-This guard does not mean arbitrary future DOM code is automatically safe; user-controlled values must continue to be assigned through text/value APIs or otherwise escaped for their rendering context.
+The review found that identity values and API/user values in those renderers are escaped with the local `escapeHtml`/`esc` helpers or assigned through `textContent` at the inspected sink boundaries. This is change control around known legacy sinks, not a claim that `innerHTML` is intrinsically safe. New renderers should prefer DOM creation and `textContent`; user-controlled values must never be interpolated into HTML without context-appropriate escaping.
+
+Protected API responses also receive a restrictive CSP.
 
 ## CSRF
 
@@ -44,9 +46,11 @@ Any new organization-owned endpoint must use the organization-scoped dependency 
 
 ## File upload attacks and path traversal
 
-**Current exposure:** none. HajiriFlow currently exposes no `UploadFile`, multipart upload, filesystem-download, or browser file-input flow.
+**Current server exposure:** none. HajiriFlow currently exposes no FastAPI `UploadFile`, multipart upload, filesystem upload/download, or path-based file endpoint.
 
-Do not add placeholder upload code. If document/file functionality is introduced, it must receive its own threat review covering MIME verification, file signatures, size limits, malware/content scanning, generated storage names, private object authorization, path normalization, download headers and retention/deletion.
+**Finding remediated during this review:** the production browser layer dynamically created an employee-photo file picker and stored cropped image data URLs through the media helper. The media helper persisted those photos in `localStorage`. That was inappropriate for production employee imagery even though no server upload occurred. The production photo picker/crop flow has been removed, and the media helper no longer persists custom photos in browser storage; any legacy custom-photo value is now memory-only for the current page lifetime. CI asserts that production does not reintroduce the picker/FileReader flow or employee-photo local-storage key.
+
+If authoritative employee-photo or document functionality is introduced, it must be a protected server/storage feature with object authorization, MIME and file-signature verification, size limits, malware/content scanning where applicable, generated storage identifiers, path normalization, private download authorization, retention/deletion, and audit events. Do not bring back browser-local persistence as a production substitute.
 
 ## Password-reset abuse
 
