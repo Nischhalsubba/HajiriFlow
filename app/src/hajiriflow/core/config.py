@@ -10,6 +10,11 @@ KNOWN_UNSAFE_SESSION_SECRETS = {
     "replace-with-at-least-32-random-characters",
     "change-me-change-me-change-me-change-me",
 }
+KNOWN_UNSAFE_DATABASE_URLS = {
+    "postgresql://hajiriflow:hajiriflow@localhost:5432/hajiriflow",
+    "postgresql+psycopg://hajiriflow:hajiriflow@localhost:5432/hajiriflow",
+}
+LOOPBACK_HOSTS = {"localhost", "127.0.0.1", "::1"}
 
 
 class Settings(BaseSettings):
@@ -38,7 +43,14 @@ class Settings(BaseSettings):
 
     @property
     def allowed_origins(self) -> list[str]:
-        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+        # Browsers serialize an Origin without a trailing slash. Canonicalizing
+        # root origins here prevents a harmless configuration typo from causing
+        # CORS mismatches while still rejecting origins that contain a path.
+        return [
+            origin.strip().rstrip("/")
+            for origin in self.cors_origins.split(",")
+            if origin.strip()
+        ]
 
     @field_validator("timezone")
     @classmethod
@@ -72,19 +84,46 @@ class Settings(BaseSettings):
         if self.session_secret.strip().lower() in KNOWN_UNSAFE_SESSION_SECRETS:
             raise ValueError(f"{self.environment} requires a non-placeholder session secret")
 
+        database_url = self.database_url.strip()
+        parsed_database = urlparse(database_url)
+        database_scheme = parsed_database.scheme.lower().split("+", 1)[0]
+        database_host = (parsed_database.hostname or "").lower()
+        if (
+            database_url.lower() in KNOWN_UNSAFE_DATABASE_URLS
+            or database_scheme == "sqlite"
+            or database_host in LOOPBACK_HOSTS
+        ):
+            raise ValueError(
+                f"{self.environment} requires a non-local, non-development database URL"
+            )
+
         unsafe_origins: list[str] = []
-        for origin in self.allowed_origins:
+        for origin in [item.strip() for item in self.cors_origins.split(",") if item.strip()]:
             parsed = urlparse(origin)
             hostname = (parsed.hostname or "").lower()
-            is_loopback = hostname in {"localhost", "127.0.0.1", "::1"}
-            if parsed.scheme.lower() != "https" or is_loopback:
+            has_non_origin_parts = bool(
+                parsed.username
+                or parsed.password
+                or parsed.params
+                or parsed.query
+                or parsed.fragment
+                or parsed.path not in {"", "/"}
+            )
+            if (
+                parsed.scheme.lower() != "https"
+                or hostname in LOOPBACK_HOSTS
+                or not hostname
+                or has_non_origin_parts
+            ):
                 unsafe_origins.append(origin)
 
         if unsafe_origins:
             joined = ", ".join(unsafe_origins)
-            raise ValueError(
-                f"{self.environment} requires HTTPS, non-loopback CORS origins; unsafe: {joined}"
+            message = (
+                f"{self.environment} requires canonical HTTPS, non-loopback CORS origins; "
+                f"unsafe: {joined}"
             )
+            raise ValueError(message)
 
         return self
 

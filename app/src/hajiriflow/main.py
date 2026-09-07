@@ -19,7 +19,10 @@ def create_app() -> FastAPI:
         docs_url="/docs" if settings.environment != "production" else None,
         redoc_url=None,
     )
-    app.add_middleware(SecurityHeadersMiddleware)
+    app.add_middleware(
+        SecurityHeadersMiddleware,
+        protected_environment=settings.environment in {"staging", "production"},
+    )
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.allowed_origins,
