@@ -1,9 +1,15 @@
 from functools import lru_cache
 from typing import Literal
+from urllib.parse import urlparse
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+KNOWN_UNSAFE_SESSION_SECRETS = {
+    "replace-with-at-least-32-random-characters",
+    "change-me-change-me-change-me-change-me",
+}
 
 
 class Settings(BaseSettings):
@@ -52,11 +58,34 @@ class Settings(BaseSettings):
         return value
 
     @model_validator(mode="after")
-    def validate_cookie_policy(self) -> "Settings":
+    def validate_security_policy(self) -> "Settings":
         if self.cookie_same_site == "none" and not self.cookie_secure:
             raise ValueError("SameSite=None requires secure cookies")
-        if self.environment == "production" and not self.cookie_secure:
-            raise ValueError("production requires secure cookies")
+
+        protected_environment = self.environment in {"staging", "production"}
+        if not protected_environment:
+            return self
+
+        if not self.cookie_secure:
+            raise ValueError(f"{self.environment} requires secure cookies")
+
+        if self.session_secret.strip().lower() in KNOWN_UNSAFE_SESSION_SECRETS:
+            raise ValueError(f"{self.environment} requires a non-placeholder session secret")
+
+        unsafe_origins: list[str] = []
+        for origin in self.allowed_origins:
+            parsed = urlparse(origin)
+            hostname = (parsed.hostname or "").lower()
+            is_loopback = hostname in {"localhost", "127.0.0.1", "::1"}
+            if parsed.scheme.lower() != "https" or is_loopback:
+                unsafe_origins.append(origin)
+
+        if unsafe_origins:
+            joined = ", ".join(unsafe_origins)
+            raise ValueError(
+                f"{self.environment} requires HTTPS, non-loopback CORS origins; unsafe: {joined}"
+            )
+
         return self
 
 
