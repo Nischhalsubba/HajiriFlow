@@ -116,7 +116,9 @@ class AttendanceService:
             )
         )
 
-    def _day_bounds(self, organization: CompanyProfile, work_date: date) -> tuple[datetime, datetime]:
+    def _day_bounds(
+        self, organization: CompanyProfile, work_date: date
+    ) -> tuple[datetime, datetime]:
         timezone = ZoneInfo(organization.timezone)
         start_local = datetime.combine(work_date, datetime.min.time(), tzinfo=timezone)
         end_local = start_local + timedelta(days=1)
