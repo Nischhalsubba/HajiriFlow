@@ -35,6 +35,8 @@ class Settings(BaseSettings):
     session_ttl_minutes: int = Field(default=480, ge=15, le=43200)
     login_window_seconds: int = Field(default=900, ge=60, le=86400)
     login_max_attempts: int = Field(default=5, ge=2, le=50)
+    worker_poll_seconds: int = Field(default=30, ge=5, le=3600)
+    device_pull_max_attempts: int = Field(default=3, ge=1, le=10)
     session_cookie_name: str = "hajiriflow_session"
     csrf_cookie_name: str = "hajiriflow_csrf"
     cookie_secure: bool = False
