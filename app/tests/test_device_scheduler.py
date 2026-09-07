@@ -73,10 +73,11 @@ def test_scheduler_runs_supported_adapter_through_pull_coordinator() -> None:
     session = get_session_factory()()
     try:
         device = _device(session)
-        scheduler = DevicePullScheduler(
-            session,
-            adapter_resolver=lambda candidate: EmptyAdapter() if candidate.id == device.id else None,
-        )
+
+        def resolve(candidate: Device) -> EmptyAdapter | None:
+            return EmptyAdapter() if candidate.id == device.id else None
+
+        scheduler = DevicePullScheduler(session, adapter_resolver=resolve)
 
         result = scheduler.run_once()
         assert len(result) == 1
