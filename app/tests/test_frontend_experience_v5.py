@@ -47,7 +47,9 @@ def test_people_media_uses_free_licensed_photographic_portraits() -> None:
 def test_photographic_portrait_retry_and_photo_storage_are_valid() -> None:
     assert 'portraitUrl(name, 11)' in MEDIA
     assert "let attempt = 0" in MEDIA
-    assert "hajiriflow_employee_photos_v1" in MEDIA
+    assert "const customPhotos = new Map()" in MEDIA
+    assert "localStorage" not in MEDIA
+    assert "hajiriflow_employee_photos" not in MEDIA
     assert "api.dicebear.com" not in MEDIA
     assert "20260803-7" in INDEX
 
