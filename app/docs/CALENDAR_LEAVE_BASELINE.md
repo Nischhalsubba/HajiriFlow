@@ -33,7 +33,7 @@ An empty eligibility list means all employment types are eligible. Policy-rule m
 - pending days
 - available days
 
-Existing allocations without a detail row remain backward-compatible: their existing `allocated_days` value is treated as earned entitlement until a breakdown is explicitly saved.
+Existing allocations without a detail row remain backward-compatible: their existing `allocated_days` value is treated as earned entitlement until a breakdown is explicitly saved. Existing API routes that accept `period_year` follow the same BS-year interpretation as the newer balance and annual-allocation routes.
 
 Leave requests must remain inside one BS allocation year. Their working-day count uses the same organization calendar service, so weekends and active holidays are excluded consistently. Half-day requests are limited to a single working day when the policy allows them.
 
