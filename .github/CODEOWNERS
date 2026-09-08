@@ -1,0 +1,17 @@
+# Default ownership for HajiriFlow.
+* @Nischhalsubba
+
+# Protect repository governance and release automation.
+/.github/ @Nischhalsubba
+/netlify.toml @Nischhalsubba
+
+# High-risk production boundaries.
+/app/src/hajiriflow/api/ @Nischhalsubba
+/app/src/hajiriflow/identity/ @Nischhalsubba
+/app/src/hajiriflow/attendance/ @Nischhalsubba
+/app/src/hajiriflow/payroll/ @Nischhalsubba
+/app/src/hajiriflow/device_platform/ @Nischhalsubba
+/app/src/hajiriflow/worker/ @Nischhalsubba
+/app/alembic/ @Nischhalsubba
+/app/site/assets/runtime-config.js @Nischhalsubba
+/app/scripts/generate-runtime-config.mjs @Nischhalsubba
