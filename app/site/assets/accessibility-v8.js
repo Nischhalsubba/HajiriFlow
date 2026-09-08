@@ -5,6 +5,7 @@
   const modalLayer = document.getElementById("modal-layer");
   const commandLayer = document.getElementById("command-layer");
   const pageTitle = document.getElementById("page-title");
+  const skipLink = document.querySelector(".skip-link");
   const focusableSelector = [
     "a[href]",
     "button:not([disabled])",
@@ -88,7 +89,9 @@
   function tableLabel(container) {
     const panel = container.closest(".panel, .table-panel");
     const heading = panel?.querySelector("h2, h3")?.textContent?.trim();
-    return heading ? `${heading} table` : `${pageTitle?.textContent?.trim() || "HajiriFlow"} table`;
+    return heading
+      ? `${heading} table`
+      : `${pageTitle?.textContent?.trim() || "HajiriFlow"} table`;
   }
 
   function enhanceTables(root) {
@@ -108,9 +111,23 @@
     });
   }
 
+  function syncSkipTarget() {
+    if (!skipLink) return;
+    const boundary = document.getElementById("production-data-boundary");
+    if (boundary) {
+      boundary.tabIndex = -1;
+      skipLink.setAttribute("href", "#production-data-boundary");
+      skipLink.textContent = "Skip to production status";
+      return;
+    }
+    skipLink.setAttribute("href", "#workspace");
+    skipLink.textContent = "Skip to workspace";
+  }
+
   function enhance(root = document) {
     enhanceButtons(root);
     enhanceTables(root);
+    syncSkipTarget();
   }
 
   document.addEventListener("focusin", (event) => {
@@ -137,6 +154,10 @@
     const observer = new MutationObserver(() => enhance(workspace));
     observer.observe(workspace, { childList: true, subtree: true });
   }
+
+  window.addEventListener("hajiriflow:identity-ready", () => {
+    requestAnimationFrame(syncSkipTarget);
+  });
 
   enhance(document);
 })();
