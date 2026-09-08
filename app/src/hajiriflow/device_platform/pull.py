@@ -100,18 +100,27 @@ class DevicePullCoordinator:
             for attempt in range(1, self.max_attempts + 1):
                 pull_session.attempt_count = attempt
                 try:
+                    # Network/device reads happen before the database savepoint so a
+                    # transport failure cannot leave partial application-side writes.
                     batch = adapter.pull_punches(cursor=cursor)
-                    inserted, duplicates = self.service.ingest_punches(
-                        device=device,
-                        punches=batch.punches,
-                        pull_session=pull_session,
-                    )
                     capabilities = adapter.capabilities()
-                    if capabilities.list_users:
-                        self.service.sync_device_users(
+                    users = adapter.list_users() if capabilities.list_users else None
+
+                    # A single attempt is atomic. If validation or persistence fails
+                    # after one or more punches/users were flushed, the savepoint
+                    # rolls those partial writes back before the bounded retry.
+                    with self.session.begin_nested():
+                        inserted, duplicates = self.service.ingest_punches(
                             device=device,
-                            users=adapter.list_users(),
+                            punches=batch.punches,
+                            pull_session=pull_session,
                         )
+                        if users is not None:
+                            self.service.sync_device_users(
+                                device=device,
+                                users=users,
+                            )
+
                     pull_session.ingested_count += inserted
                     pull_session.duplicate_count += duplicates
                     pull_session.cursor_after = batch.next_cursor
