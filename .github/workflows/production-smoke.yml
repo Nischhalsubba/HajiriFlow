@@ -1,0 +1,133 @@
+name: Production Smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      frontend_url:
+        description: Deployed HajiriFlow frontend origin
+        required: true
+        type: string
+      api_url:
+        description: Deployed HajiriFlow API origin
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-smoke
+  cancel-in-progress: false
+
+jobs:
+  smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: production
+    env:
+      FRONTEND_URL: ${{ inputs.frontend_url }}
+      API_URL: ${{ inputs.api_url }}
+
+    steps:
+      - name: Validate production origins
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from urllib.parse import urlparse
+
+          for name in ("FRONTEND_URL", "API_URL"):
+              value = os.environ[name].strip().rstrip("/")
+              parsed = urlparse(value)
+              if parsed.scheme != "https" or not parsed.netloc:
+                  raise SystemExit(f"{name} must be an absolute HTTPS origin")
+              if parsed.username or parsed.password or parsed.query or parsed.fragment:
+                  raise SystemExit(
+                      f"{name} must not contain credentials, query, or fragment"
+                  )
+              if parsed.path not in ("", "/"):
+                  raise SystemExit(f"{name} must be an origin without a path")
+              print(f"Validated {name} origin host: {parsed.hostname}")
+          PY
+
+      - name: Smoke frontend, runtime boundary, and security headers
+        shell: bash
+        run: |
+          set -euo pipefail
+          frontend="${FRONTEND_URL%/}"
+          curl --fail --silent --show-error --location --max-time 20 \
+            --dump-header frontend-headers.txt --output frontend.html "$frontend/"
+          curl --fail --silent --show-error --max-time 20 \
+            --output runtime-config.js "$frontend/assets/runtime-config.js"
+          grep -Eiq '^content-security-policy:' frontend-headers.txt
+          grep -Eiq '^strict-transport-security:' frontend-headers.txt
+          grep -Eiq '^x-content-type-options:[[:space:]]*nosniff' frontend-headers.txt
+          grep -Eiq '^x-frame-options:[[:space:]]*DENY' frontend-headers.txt
+          grep -Eiq '^referrer-policy:' frontend-headers.txt
+          grep -Fq 'HajiriFlow' frontend.html
+          grep -Fq '"environment":"production"' runtime-config.js
+          grep -Fq '"operationalDataMode":"integration-required"' runtime-config.js
+
+      - name: Smoke direct API health and readiness
+        shell: bash
+        run: |
+          set -euo pipefail
+          api="${API_URL%/}"
+          curl --fail --silent --show-error --max-time 20 \
+            --dump-header api-health-headers.txt --output health.json "$api/health"
+          curl --fail --silent --show-error --max-time 20 \
+            --output ready.json "$api/ready"
+          python - <<'PY'
+          import json
+
+          with open("health.json", encoding="utf-8") as handle:
+              health = json.load(handle)
+          with open("ready.json", encoding="utf-8") as handle:
+              ready = json.load(handle)
+
+          if health.get("status") != "ok" or health.get("service") != "hajiriflow-web":
+              raise SystemExit("API /health returned an unexpected payload")
+          if health.get("environment") != "production":
+              raise SystemExit("API /health is not reporting the production environment")
+          if not isinstance(health.get("version"), str) or not health["version"]:
+              raise SystemExit("API /health did not report a version")
+          if ready != {"status": "ready"}:
+              raise SystemExit("API /ready returned an unexpected payload")
+          PY
+          grep -Eiq '^strict-transport-security:' api-health-headers.txt
+          grep -Eiq '^x-content-type-options:[[:space:]]*nosniff' api-health-headers.txt
+          grep -Eiq '^x-frame-options:[[:space:]]*DENY' api-health-headers.txt
+          grep -Eiq '^content-security-policy:' api-health-headers.txt
+
+      - name: Smoke frontend same-origin API proxy
+        shell: bash
+        run: |
+          set -euo pipefail
+          frontend="${FRONTEND_URL%/}"
+          curl --fail --silent --show-error --max-time 20 \
+            --output proxied-health.json "$frontend/api/health"
+          python - <<'PY'
+          import json
+
+          with open("proxied-health.json", encoding="utf-8") as handle:
+              health = json.load(handle)
+          if health.get("status") != "ok" or health.get("environment") != "production":
+              raise SystemExit("frontend /api proxy did not reach the production API")
+          PY
+
+      - name: Record smoke summary
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo '## HajiriFlow production smoke'
+            echo
+            echo '- Frontend origin: validated over HTTPS'
+            echo '- Frontend security headers: present'
+            echo '- Runtime config: production + integration-required'
+            echo '- Direct API /health: healthy production service'
+            echo '- Direct API /ready: database ready'
+            echo '- Frontend same-origin /api proxy: healthy'
+            echo '- API security headers: present'
+          } >> "$GITHUB_STEP_SUMMARY"
