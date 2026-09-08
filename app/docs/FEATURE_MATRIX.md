@@ -12,11 +12,11 @@ Status values:
 | HF-001 | Secure authentication | Revocable sessions, password lifecycle, throttling, CSRF, audit | PLANNED | Database |
 | HF-002 | Multi-role RBAC | Deny by default; page, API, export, job, and object checks | PLANNED | HF-001 |
 | HF-003 | Web account administration | Create, edit, activate, deactivate, employee link, search | PLANNED | HF-001, HF-002 |
-| HF-004 | Company profile | Configurable report identity and contact details | PLANNED | Database |
-| HF-005 | Organization hierarchy | Directorate, department, section, unit CRUD with validation | PLANNED | HF-002 |
-| HF-006 | Employee master | Full profile, status lifecycle, filters, export, soft restore | PLANNED | HF-005 |
-| HF-007 | Shift definitions | Start/end, breaks, grace, overnight support | PLANNED | HF-005 |
-| HF-008 | Effective shift assignments | Employee or org scope with effective date ranges | PLANNED | HF-006, HF-007 |
+| HF-004 | Company profile | Configurable report identity and contact details | VERIFIED | Database |
+| HF-005 | Organization hierarchy | Directorate, department, section, unit CRUD with validation | VERIFIED | HF-002 |
+| HF-006 | Employee master | Full profile, status lifecycle, filters, export, soft restore | VERIFIED | HF-005 |
+| HF-007 | Shift definitions | Start/end, breaks, grace, overnight support | VERIFIED | HF-005 |
+| HF-008 | Effective shift assignments | Employee or org scope with effective date ranges | VERIFIED | HF-006, HF-007 |
 | HF-009 | Device registry | Vendor-neutral records, encrypted secret, status, diagnostics | PLANNED | HF-002 |
 | HF-010 | Device adapter contract | Capability-based adapter interface independent of vendor | PLANNED | HF-009 |
 | HF-011 | Connection diagnostics | Test connection and show actionable sanitized result | PLANNED | HF-010 |
@@ -79,7 +79,8 @@ Status values:
 ## Completion accounting
 
 - Total baseline capabilities: 66
-- Foundation capabilities at project bootstrap: 4
-- Remaining capabilities require implementation and verification.
+- Verified capabilities: 5
+- Foundation-only capabilities: 4
+- Remaining planned/in-progress capabilities: 57
 
 The matrix is updated in the same pull request that changes a feature's status. “Mostly works on my laptop” is not one of the status values, despite its historic popularity.

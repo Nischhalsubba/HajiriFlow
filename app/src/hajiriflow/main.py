@@ -16,6 +16,7 @@ from hajiriflow.api.payroll import router as payroll_router
 from hajiriflow.api.reporting import router as reporting_router
 from hajiriflow.api.role_lifecycle import router as role_lifecycle_router
 from hajiriflow.api.workforce import router as workforce_router
+from hajiriflow.api.workforce_management import router as workforce_management_router
 from hajiriflow.core.config import get_settings
 
 
@@ -53,6 +54,7 @@ def create_app() -> FastAPI:
     app.include_router(identity_router)
     app.include_router(role_lifecycle_router)
     app.include_router(workforce_router)
+    app.include_router(workforce_management_router)
     app.include_router(calendar_leave_router)
     app.include_router(attendance_router)
     app.include_router(payroll_router)
