@@ -54,6 +54,16 @@ class Settings(BaseSettings):
             if origin.strip()
         ]
 
+    @field_validator("database_url")
+    @classmethod
+    def normalize_database_url(cls, value: str) -> str:
+        """Use the installed psycopg 3 driver for standard managed-Postgres URLs."""
+
+        normalized = value.strip()
+        if normalized.startswith("postgresql://"):
+            return "postgresql+psycopg://" + normalized.removeprefix("postgresql://")
+        return normalized
+
     @field_validator("timezone")
     @classmethod
     def validate_timezone(cls, value: str) -> str:
