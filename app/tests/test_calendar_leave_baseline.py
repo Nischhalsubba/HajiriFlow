@@ -349,7 +349,7 @@ def test_bs_calendar_holiday_lifecycle_and_field_duty_exports() -> None:
             workforce_admin_id=workforce_id,
             employee_user_id=employee_user_id,
         )
-        employee = create_employee(
+        create_employee(
             client,
             organization_id=org_id,
             csrf=system_csrf,
