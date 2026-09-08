@@ -750,7 +750,7 @@ def diagnostic_history(
             firmware_version=item.firmware_version,
             device_time=item.device_time,
             message=item.message,
-            metadata=item.metadata,
+            metadata=item.diagnostic_data,
             observed_at=item.observed_at,
         )
         for item in items

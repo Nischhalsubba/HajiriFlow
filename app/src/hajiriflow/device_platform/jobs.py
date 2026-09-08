@@ -193,7 +193,7 @@ class DeviceJobProcessor:
                 firmware_version=diagnostics.firmware_version,
                 device_time=diagnostics.device_time,
                 message=diagnostics.message,
-                metadata=dict(diagnostics.metadata),
+                diagnostic_data=dict(diagnostics.metadata),
                 observed_at=diagnostics.observed_at,
             )
             self.session.add(snapshot)
