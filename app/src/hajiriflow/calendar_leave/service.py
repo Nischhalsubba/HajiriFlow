@@ -540,11 +540,14 @@ class CalendarLeaveService:
         if decision not in {"approved", "rejected"}:
             raise ValueError("leave decision must be approved or rejected")
         if decision == "approved":
+            request_bs_year = int(
+                BsDateService.ad_to_bs(request.start_date).split("-", 1)[0]
+            )
             balance = self.leave_balance(
                 organization_id=organization_id,
                 employee_id=request.employee_id,
                 leave_policy_id=request.leave_policy_id,
-                period_year=request.start_date.year,
+                period_year=request_bs_year,
                 exclude_request_id=request.id,
             )
             if request.requested_days > balance.available:
