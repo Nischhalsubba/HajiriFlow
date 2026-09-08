@@ -6,6 +6,7 @@ from uuid import UUID
 from sqlalchemy import and_, func, select
 from sqlalchemy.orm import Session
 
+from hajiriflow.calendar_leave.bs_dates import BsDateService
 from hajiriflow.db.models.calendar_leave import (
     FieldDutyRequest,
     Holiday,
@@ -388,12 +389,15 @@ class CalendarLeaveService:
         entitlement = Decimal(allocation.allocated_days)
         entitlement += Decimal(allocation.carried_days)
         entitlement += Decimal(allocation.adjustment_days)
+        period_start = BsDateService.bs_to_ad(f"{period_year:04d}-01-01")
+        next_period_start = BsDateService.bs_to_ad(f"{period_year + 1:04d}-01-01")
+        period_end = next_period_start - timedelta(days=1)
         base_filters = [
             LeaveRequest.organization_id == organization_id,
             LeaveRequest.employee_id == employee_id,
             LeaveRequest.leave_policy_id == leave_policy_id,
-            LeaveRequest.start_date >= date(period_year, 1, 1),
-            LeaveRequest.start_date <= date(period_year, 12, 31),
+            LeaveRequest.start_date >= period_start,
+            LeaveRequest.start_date <= period_end,
         ]
         if exclude_request_id:
             base_filters.append(LeaveRequest.id != exclude_request_id)
@@ -440,8 +444,10 @@ class CalendarLeaveService:
         self._employee(organization_id, employee_id)
         if end_date < start_date:
             raise ValueError("end_date cannot be before start_date")
-        if start_date.year != end_date.year:
-            raise ValueError("leave requests cannot cross allocation years")
+        start_bs_year = int(BsDateService.ad_to_bs(start_date).split("-", 1)[0])
+        end_bs_year = int(BsDateService.ad_to_bs(end_date).split("-", 1)[0])
+        if start_bs_year != end_bs_year:
+            raise ValueError("leave requests cannot cross BS allocation years")
         policy = self.session.get(LeavePolicy, leave_policy_id)
         if not policy or policy.organization_id != organization_id or not policy.active:
             raise LookupError("leave policy not found")
@@ -483,7 +489,7 @@ class CalendarLeaveService:
             organization_id=organization_id,
             employee_id=employee_id,
             leave_policy_id=leave_policy_id,
-            period_year=start_date.year,
+            period_year=start_bs_year,
         )
         if requested_days > balance.available:
             raise ValueError("insufficient leave balance")

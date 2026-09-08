@@ -204,7 +204,7 @@ def test_leave_and_field_duty_share_deterministic_workday_rules() -> None:
             json={
                 "employee_id": employee_id,
                 "leave_policy_id": policy_id,
-                "period_year": 2026,
+                "period_year": 2083,
                 "allocated_days": "10.00",
                 "carried_days": "0.00",
                 "adjustment_days": "0.00",
@@ -242,7 +242,7 @@ def test_leave_and_field_duty_share_deterministic_workday_rules() -> None:
 
         balance = client.get(
             f"/api/v1/organizations/{primary['id']}/self/leave/balance/"
-            f"{policy_id}/2026"
+            f"{policy_id}/2083"
         )
         assert balance.status_code == 200, balance.text
         assert Decimal(balance.json()["pending"]) == Decimal("3.00")
