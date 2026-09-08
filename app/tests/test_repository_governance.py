@@ -54,6 +54,8 @@ def test_manual_production_smoke_checks_frontend_and_database_readiness() -> Non
     assert 'parsed.scheme != "https"' in source
     assert '"$api/health"' in source
     assert '"$api/ready"' in source
+    assert '"$frontend/api/health"' in source
+    assert '"operationalDataMode":"integration-required"' in source
     assert "strict-transport-security" in source.lower()
     assert "content-security-policy" in source.lower()
     assert 'health.get("environment") != "production"' in source
@@ -93,7 +95,11 @@ def test_runbook_covers_backup_restore_rollback_and_sensitive_boundaries() -> No
         "independent authorization",
     ):
         assert required in source
-    assert "Do not run an Alembic downgrade in production merely to match an application rollback" in source
+    warning = (
+        "Do not run an Alembic downgrade in production merely to match "
+        "an application rollback"
+    )
+    assert warning in source
 
 
 def test_readiness_document_keeps_external_blockers_explicit() -> None:
