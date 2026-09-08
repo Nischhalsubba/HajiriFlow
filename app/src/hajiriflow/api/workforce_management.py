@@ -38,6 +38,7 @@ EmploymentType = Literal[
 ]
 EmployeeSort = Literal["attendance_id", "employee_code", "name", "joined_on"]
 SortOrder = Literal["asc", "desc"]
+StatusFilter = Annotated[EmployeeStatus | None, Query(alias="status")]
 
 
 class CompanyReportProfileUpdate(BaseModel):
@@ -413,7 +414,7 @@ def list_employee_details(
     ],
     session: Annotated[Session, Depends(get_db)],
     q: str | None = Query(default=None, max_length=120),
-    status_filter: EmployeeStatus | None = Query(default=None, alias="status"),
+    status_filter: StatusFilter = None,
     employment_type: EmploymentType | None = None,
     sort_by: EmployeeSort = "employee_code",
     sort_order: SortOrder = "asc",
@@ -564,7 +565,7 @@ def export_employees(
         alias="format",
     ),
     q: str | None = Query(default=None, max_length=120),
-    status_filter: EmployeeStatus | None = Query(default=None, alias="status"),
+    status_filter: StatusFilter = None,
     employment_type: EmploymentType | None = None,
 ) -> StreamingResponse:
     _company(session, organization_id)
