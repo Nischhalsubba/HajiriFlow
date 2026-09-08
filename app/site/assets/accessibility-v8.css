@@ -1,0 +1,124 @@
+/* WCAG 2.2 AA interaction hardening for HajiriFlow. */
+
+html {
+  scroll-padding-top: calc(var(--topbar-height, 80px) + 16px);
+}
+
+:is(
+  a[href],
+  button,
+  input,
+  select,
+  textarea,
+  [tabindex]:not([tabindex="-1"])
+) {
+  scroll-margin-block: calc(var(--topbar-height, 80px) + 16px) 24px;
+}
+
+:is(a[href], button, input, select, textarea):focus-visible,
+[tabindex]:not([tabindex="-1"]):focus-visible {
+  outline: 3px solid var(--focus, #7f8cff);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 2px var(--surface, #fff);
+}
+
+.button,
+.icon-button,
+.search-trigger,
+.avatar-button,
+.identity-signout,
+.sidebar-close,
+input,
+select,
+textarea {
+  min-block-size: 44px;
+}
+
+.table-action,
+.text-action,
+.person-cell,
+.org-list button,
+.command-results button,
+.settings-action {
+  min-block-size: 40px;
+}
+
+.table-scroll,
+.table-wrap {
+  max-inline-size: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-gutter: stable;
+}
+
+.table-scroll[tabindex="0"],
+.table-wrap[tabindex="0"] {
+  border-radius: inherit;
+}
+
+.table-scroll[tabindex="0"]:focus-visible,
+.table-wrap[tabindex="0"]:focus-visible {
+  outline-offset: -3px;
+}
+
+.modal-layer:not([hidden]) .modal,
+.command-layer:not([hidden]) .command-panel {
+  max-height: min(92vh, 900px);
+  overflow: auto;
+}
+
+.modal-layer:not([hidden]),
+.command-layer:not([hidden]) {
+  overscroll-behavior: contain;
+}
+
+@media (max-width: 560px) {
+  html,
+  body {
+    font-size: 16px;
+  }
+
+  .button,
+  .icon-button,
+  .search-trigger,
+  .identity-signout,
+  input,
+  select,
+  textarea {
+    min-block-size: 44px;
+  }
+
+  .table-scroll,
+  .table-wrap {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (forced-colors: active) {
+  :focus-visible {
+    outline: 2px solid Highlight !important;
+    outline-offset: 3px !important;
+    box-shadow: none !important;
+  }
+
+  .status-pill,
+  .production-boundary-dot,
+  .connection-dot {
+    forced-color-adjust: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto !important;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+  }
+}
