@@ -118,6 +118,7 @@ def expect_accessible_workspace_keyboard_behavior(page: Page) -> None:
 
     page.goto(f"{BASE_URL}/#attendance")
     expect_unlocked(page, "Browser Admin")
+    expect(page.locator("#page-title")).to_have_text("Attendance")
     table_region = page.locator(".table-scroll").first
     expect(table_region).to_have_attribute("role", "region")
     expect(table_region).to_have_attribute("tabindex", "0")
