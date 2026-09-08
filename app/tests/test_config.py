@@ -20,6 +20,15 @@ def test_rejects_unknown_timezone() -> None:
         )
 
 
+def test_normalizes_standard_postgresql_url_for_psycopg() -> None:
+    settings = Settings(
+        session_secret=VALID_SECRET,
+        database_url="postgresql://service:secret@db.example.com:5432/hajiriflow",
+    )
+
+    assert settings.database_url == VALID_DATABASE_URL
+
+
 @pytest.mark.parametrize("environment", ["staging", "production"])
 def test_protected_environments_require_secure_cookies(environment: str) -> None:
     with pytest.raises(ValidationError, match="requires secure cookies"):
