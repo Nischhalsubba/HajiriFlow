@@ -1,4 +1,4 @@
-/* Production presentation layer: photographic portraits, photo management, and live-safe controls. */
+/* Production presentation and fail-closed operational-data boundary. */
 
 .open-avatar.is-photographic {
   background: linear-gradient(145deg, #e8edf5, #d7dee9);
@@ -58,6 +58,101 @@
   display: none !important;
 }
 
+.production-data-blocked #workspace,
+.production-data-blocked #app-skeleton {
+  display: none !important;
+}
+
+.production-data-blocked #primary-nav {
+  opacity: .56;
+  pointer-events: none;
+}
+
+.production-data-blocked [data-action="open-command-menu"] {
+  opacity: .56;
+  pointer-events: none;
+}
+
+.production-data-boundary {
+  width: min(760px, calc(100% - 48px));
+  margin: clamp(32px, 7vw, 88px) auto;
+  padding: clamp(28px, 5vw, 48px);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--surface);
+  box-shadow: 0 18px 48px rgba(16, 24, 40, .10);
+}
+
+.production-data-boundary h2 {
+  margin: 6px 0 12px;
+  max-width: 24ch;
+  font-size: clamp(1.65rem, 3vw, 2.35rem);
+  line-height: 1.15;
+}
+
+.production-boundary-intro,
+.production-boundary-guidance {
+  max-width: 68ch;
+  line-height: 1.65;
+  color: var(--text-muted);
+}
+
+.production-boundary-statuses {
+  display: grid;
+  gap: 12px;
+  margin: 28px 0;
+}
+
+.production-boundary-status {
+  display: grid;
+  grid-template-columns: 14px 1fr;
+  gap: 12px;
+  align-items: start;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-subtle, #f8fafc);
+}
+
+.production-boundary-status strong,
+.production-boundary-status small {
+  display: block;
+}
+
+.production-boundary-status small {
+  margin-top: 3px;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.production-boundary-dot {
+  width: 10px;
+  height: 10px;
+  margin-top: 5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.production-boundary-dot.is-ready {
+  color: #16794f;
+}
+
+.production-boundary-dot.is-blocked {
+  color: #b54708;
+}
+
+.production-boundary-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.production-boundary-actions .button {
+  min-width: 96px;
+  min-height: 44px;
+}
+
 .visually-hidden {
   position: absolute !important;
   width: 1px !important;
@@ -82,5 +177,24 @@
 
   .profile-photo-actions .button {
     flex: 1 1 150px;
+  }
+}
+
+@media (max-width: 560px) {
+  .production-data-boundary {
+    width: calc(100% - 28px);
+    margin: 24px auto;
+    padding: 24px 20px;
+    border-radius: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .production-data-boundary,
+  .production-data-boundary * {
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
   }
 }
