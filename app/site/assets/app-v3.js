@@ -119,7 +119,7 @@
     $("#notification-count").textContent = D.unreadNotificationCount();
   }
 
-  function render() {
+  function render(options = {}) {
     const current = routes[route()] ? route() : "overview";
     document.documentElement.dataset.theme = S().preferences.theme;
     document.documentElement.dataset.density = S().preferences.density;
@@ -128,7 +128,9 @@
     renderNav();
     workspace.innerHTML = routes[current]();
     shell.classList.remove("sidebar-is-open");
-    workspace.focus({ preventScroll: true });
+    if (options.focusWorkspace === true) {
+      workspace.focus({ preventScroll: true });
+    }
   }
 
   function metric(label, value, detail, tone = "blue", symbol = "overview") {
@@ -148,7 +150,7 @@
       return [x, y, point];
     });
     const line = coords.map(([x, y]) => `${x},${y}`).join(" ");
-    return `<div class="trend-chart"><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Attendance rate trend"><defs><linearGradient id="chart-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2563eb" stop-opacity=".24"/><stop offset="1" stop-color="#2563eb" stop-opacity="0"/></linearGradient></defs><path class="chart-area" d="M${coords[0][0]},${height - pad} L${line.replaceAll(" ", " L")} L${coords.at(-1)[0]},${height - pad} Z"/><polyline class="chart-line" points="${line}"/>${coords.map(([x, y, point]) => `<circle cx="${x}" cy="${y}" r="3"><title>${point.label}: ${point.rate}%</title></circle>`).join("")}</svg><div class="chart-labels">${points.filter((_, index) => index % Math.max(1, Math.floor(points.length / 6)) === 0).map((point) => `<span>${point.label}</span>`).join("")}</div></div>`;
+    return `<div class="trend-chart"><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Attendance rate trend"><defs><linearGradient id="chart-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2563eb" stop-opacity=".24"/><stop offset="1" stop-color="#2563eb" stop-opacity="0"/></linearGradient></defs><path class="chart-area" d="M${coords[0][0]},${height - pad} L${coords.map(([x, y]) => `${x},${y}`).join(" L")} L${coords.at(-1)[0]},${height - pad} Z" fill="url(#chart-fill)"/><polyline class="chart-line" points="${line}" fill="none"/><g>${coords.filter((_, index) => index % Math.max(1, Math.floor(coords.length / 6)) === 0 || index === coords.length - 1).map(([x, y, point]) => `<circle cx="${x}" cy="${y}" r="3.5"><title>${formatDate(point.date)} · ${point.rate}% attendance</title></circle>`).join("")}</g></svg><div class="chart-caption"><span>${formatDate(points[0].date)}</span><span>${formatDate(points.at(-1).date)}</span></div></div>`;
   }
 
   function activityList(items) {
@@ -162,10 +164,10 @@
     const exceptions = records.filter((record) => ["Late", "Absent", "Leave"].includes(record.status)).slice(0, 6);
     const departmentCounts = S().departments.map((item) => ({
       name: item.name,
-      value: S().employees.filter((person) => person.departmentId === item.id && person.status === "Active").length,
-    })).sort((a, b) => b.value - a.value);
-    const maxDepartment = Math.max(1, ...departmentCounts.map((item) => item.value));
-    return `<div class="page-stack"><section class="welcome-row"><div><p class="eyebrow">Live demo workspace</p><h2>Good ${new Intl.DateTimeFormat("en-GB", { timeZone: D.TIMEZONE, hour: "numeric", hour12: false }).format(new Date()) < 12 ? "morning" : "afternoon"}, Nischhal.</h2><p>Every figure below is calculated from the generated workforce dataset in this browser.</p></div><div class="page-actions">${button("Reprocess today", "reprocess-today", { ico: "refresh" })}${button("Add employee", "add-employee", { kind: "primary", ico: "plus" })}</div></section><section class="metric-grid">${metric("Attendance rate", `${summary.attendanceRate}%`, `${summary.present} of ${summary.activeEmployees} active people`, "blue", "attendance")}${metric("Needs review", String(summary.late + summary.absent), `${summary.late} late · ${summary.absent} absent`, "amber", "alert")}${metric("Leave approvals", String(summary.pendingLeave), "Pending manager decisions", summary.pendingLeave ? "amber" : "green", "leave")}${metric("Reader health", `${summary.onlineDevices}/${summary.totalDevices}`, "Biometric readers online", summary.onlineDevices === summary.totalDevices ? "green" : "red", "devices")}</section><section class="dashboard-grid"><article class="panel panel-wide">${panelHeader("Attendance intelligence", `${S().preferences.dashboardRange}-day attendance rate`, `<span class="data-source">Generated from daily evidence</span>`)}${trendChart(D.attendanceTrend(S().preferences.dashboardRange))}</article><article class="panel">${panelHeader("Today", "Exceptions requiring attention", button("View attendance", "go-attendance", { kind: "ghost" }))}${exceptions.length ? `<div class="exception-list">${exceptions.map((record) => { const person = employee(record.employeeId); return `<button data-action="view-attendance" data-id="${record.id}">${avatar(person)}<span><strong>${esc(person?.name)}</strong><small>${record.status}${record.lateMinutes ? ` · ${record.lateMinutes} min late` : ""}</small></span>${pill(record.status)}</button>`; }).join("")}</div>` : empty("No exceptions today", "The generated workforce has no unresolved attendance exceptions.")}</article><article class="panel">${panelHeader("Workforce", "People by department")}<div class="bar-list">${departmentCounts.map((item) => `<div class="bar-row"><div><span>${esc(item.name)}</span><strong>${item.value}</strong></div><progress max="${maxDepartment}" value="${item.value}"></progress></div>`).join("")}</div></article><article class="panel">${panelHeader("Audit stream", "Recent workspace activity", button("Export", "export-activity", { kind: "ghost", ico: "download" }))}${activityList(S().activities.slice(0, 7))}</article></section></div>`;
+      count: S().employees.filter((person) => person.departmentId === item.id).length,
+      present: records.filter((record) => employee(record.employeeId)?.departmentId === item.id && ["Present", "Late"].includes(record.status)).length,
+    }));
+    return `<div class="page-stack"><section class="page-intro"><div><p>Monitor today's workforce, exceptions, and system health from one operational view.</p></div><div class="page-actions">${button("Record attendance", "manual-attendance", { ico: "attendance" })}${button("Add employee", "add-employee", { kind: "primary", ico: "plus" })}</div></section><section class="metric-grid">${metric("Attendance today", `${summary.attendanceRate}%`, `${summary.present} present · ${summary.late} late`, "blue", "attendance")}${metric("Active workforce", String(summary.totalActive), `${summary.absent} absent · ${summary.onLeave} on leave`, "teal", "employees")}${metric("Open approvals", String(summary.pendingLeave), "Leave requests waiting", summary.pendingLeave ? "amber" : "green", "leave")}${metric("Device health", `${summary.onlineDevices}/${S().devices.length}`, `${summary.offlineDevices} need attention`, summary.offlineDevices ? "red" : "green", "devices")}</section><section class="dashboard-grid"><article class="panel panel-wide">${panelHeader("30-day signal", "Attendance trend", `<a class="text-link" href="#reports">Open reports</a>`)}${trendChart(D.attendanceTrend(30))}</article><article class="panel">${panelHeader("Exceptions", "Needs attention", `<a class="text-link" href="#attendance">Open attendance</a>`)}<div class="exception-list">${exceptions.map((record) => { const person = employee(record.employeeId); return `<button class="exception-item" data-action="view-attendance" data-id="${record.id}">${avatar(person)}<span><strong>${esc(person?.name)}</strong><small>${esc(department(person?.departmentId)?.name || "Unassigned")} · ${record.status}</small></span>${pill(record.status)}</button>`; }).join("") || empty("No exceptions", "Everyone is accounted for in the selected workday.")}</div></article><article class="panel panel-wide">${panelHeader("Coverage", "Department presence")}<div class="department-coverage">${departmentCounts.map((item) => `<div><span><strong>${esc(item.name)}</strong><small>${item.present}/${item.count} accounted for</small></span><div class="coverage-track"><i style="width:${item.count ? Math.round(item.present / item.count * 100) : 0}%"></i></div><b>${item.count ? Math.round(item.present / item.count * 100) : 0}%</b></div>`).join("")}</div></article><article class="panel">${panelHeader("Activity", "Recent changes")} ${activityList(S().activities.slice(0, 7))}</article></section></div>`;
   }
 
   function filteredAttendance() {
@@ -203,17 +205,20 @@
     return `<div class="page-stack"><section class="page-intro"><div><p>Manage time-away decisions and field-duty records from one approval queue.</p></div><div class="page-actions">${button("Record field duty", "record-field-duty", { ico: "plus" })}${button("Request leave", "request-leave", { kind: "primary", ico: "plus" })}</div></section><section class="metric-grid compact">${metric("Pending approvals", String(pending), "Awaiting a decision", pending ? "amber" : "green", "leave")}${metric("Approved days", String(approvedDays), "Across generated requests", "blue", "calendar")}${metric("Active requests", String(S().leaveRequests.filter((request) => request.status !== "Rejected").length), "Current demo workflow", "teal", "file")}${metric("Average balance", `${Math.max(0, 24 - Math.round(approvedDays / Math.max(1, S().employees.length)))} days`, "Estimated annual balance", "green", "check")}</section><section class="panel table-panel"><div class="table-toolbar"><div class="filters"><label><span>Status</span><select data-filter="leave-status"><option value="all">All requests</option>${["Pending", "Approved", "Rejected"].map((status) => `<option ${ui.leaveStatus === status ? "selected" : ""}>${status}</option>`).join("")}</select></label></div><label class="table-search">${icon("search")}<input type="search" placeholder="Search requests" value="${esc(ui.search)}" data-filter="search"></label></div><div class="table-scroll"><table><thead><tr><th>Employee</th><th>Leave type</th><th>Dates</th><th>Days</th><th>Applied</th><th>Status</th><th>Action</th></tr></thead><tbody>${requests.map((request) => { const person = employee(request.employeeId); return `<tr><td><div class="person-cell static">${avatar(person)}<span><strong>${esc(person?.name)}</strong><small>${esc(department(person?.departmentId)?.name || "")}</small></span></div></td><td>${esc(request.type)}</td><td>${formatDate(request.startDate)} – ${formatDate(request.endDate)}</td><td class="tabular">${request.days}</td><td>${timeAgo(request.appliedAt)}</td><td>${pill(request.status)}</td><td><div class="row-actions">${request.status === "Pending" ? `<button class="text-action success" data-action="approve-leave" data-id="${request.id}">Approve</button><button class="text-action danger" data-action="reject-leave" data-id="${request.id}">Reject</button>` : `<button class="text-action" data-action="view-leave" data-id="${request.id}">View</button>`}</div></td></tr>`; }).join("")}</tbody></table></div></section></div>`;
   }
 
-  const reportDefinitions = [
-    ["daily", "Daily attendance", "Present, late, absent, leave, and field-duty evidence for a selected date.", "attendance"],
-    ["monthly", "Monthly workforce summary", "Employee-level attendance rates, late minutes, absence, and overtime.", "reports"],
-    ["department", "Department coverage", "Compare daily coverage and exceptions across organization units.", "building"],
-    ["payroll", "Payroll reconciliation", "Trace compensation inputs back to attendance and leave records.", "money"],
-  ];
+  function reportDefinitions() {
+    return [
+      ["daily", "Daily attendance register", "Employee-by-employee status, first in, last out, and worked time.", "attendance"],
+      ["monthly", "Monthly workforce summary", "Employee-level attendance rates, late minutes, absence, and overtime.", "reports"],
+      ["department", "Department coverage", "Compare daily coverage and exceptions across organization units.", "building"],
+      ["payroll", "Payroll reconciliation", "Trace compensation inputs back to attendance and leave records.", "money"],
+    ];
+  }
 
   function renderReports() {
+    const definitions = reportDefinitions();
     const trend = D.attendanceTrend(30);
     const average = Math.round(trend.reduce((sum, point) => sum + point.rate, 0) / trend.length);
-    return `<div class="page-stack"><section class="page-intro"><div><p>Generate exportable reports from the shared dynamic workforce state.</p></div><div class="page-actions">${button("Export activity log", "export-activity", { ico: "download" })}</div></section><section class="metric-grid compact">${metric("30-day attendance", `${average}%`, "Calculated from generated evidence", "blue", "reports")}${metric("Attendance records", S().attendance.length.toLocaleString(), "Across the generated history", "teal", "attendance")}${metric("Active workforce", String(S().employees.filter((item) => item.status === "Active").length), "Included in reporting", "green", "employees")}${metric("Report types", String(reportDefinitions.length), "Ready for client walkthrough", "amber", "file")}</section><section class="report-grid">${reportDefinitions.map(([id, title, copy, symbol]) => `<article class="report-card"><span class="report-icon">${icon(symbol)}</span><div><h2>${title}</h2><p>${copy}</p></div><div class="report-card-footer"><span>CSV export · live calculations</span>${button("Generate", "generate-report", { kind: "primary", key: id })}</div></article>`).join("")}</section></div>`;
+    return `<div class="page-stack"><section class="page-intro"><div><p>Generate exportable reports from the shared dynamic workforce state.</p></div><div class="page-actions">${button("Export activity log", "export-activity", { ico: "download" })}</div></section><section class="metric-grid compact">${metric("30-day attendance", `${average}%`, "Calculated from generated evidence", "blue", "reports")}${metric("Attendance records", S().attendance.length.toLocaleString(), "Across the generated history", "teal", "attendance")}${metric("Active workforce", String(S().employees.filter((item) => item.status === "Active").length), "Included in reporting", "green", "employees")}${metric("Report types", String(definitions.length), "Ready for client walkthrough", "amber", "file")}</section><section class="report-grid">${definitions.map(([id, title, copy, symbol]) => `<article class="report-card"><span class="report-icon">${icon(symbol)}</span><div><h2>${title}</h2><p>${copy}</p></div><div class="report-card-footer"><span>CSV export · live calculations</span>${button("Generate", "generate-report", { kind: "primary", key: id })}</div></article>`).join("")}</section></div>`;
   }
 
   function renderDevices() {
@@ -239,164 +244,75 @@
 
   function renderSettings() {
     const state = S();
-    return `<div class="page-stack"><section class="settings-grid"><article class="panel">${panelHeader("Workspace", "Organization settings")}<div class="form-stack"><label class="field"><span>Workspace name</span><input id="setting-workspace-name" value="${esc(state.workspace.name)}"></label><label class="field"><span>Organization name</span><input id="setting-organization" value="${esc(state.workspace.organization)}"></label><label class="field"><span>Currency</span><select id="setting-currency"><option ${state.workspace.currency === "NPR" ? "selected" : ""}>NPR</option><option ${state.workspace.currency === "USD" ? "selected" : ""}>USD</option></select></label>${button("Save workspace", "save-settings", { kind: "primary" })}</div></article><article class="panel">${panelHeader("Appearance", "Interface preferences")}<div class="form-stack"><label class="field"><span>Theme</span><select id="setting-theme"><option value="light" ${state.preferences.theme === "light" ? "selected" : ""}>Light</option><option value="dark" ${state.preferences.theme === "dark" ? "selected" : ""}>Dark</option></select></label><label class="field"><span>Density</span><select id="setting-density"><option value="comfortable" ${state.preferences.density === "comfortable" ? "selected" : ""}>Comfortable</option><option value="compact" ${state.preferences.density === "compact" ? "selected" : ""}>Compact</option></select></label><label class="field"><span>Dashboard range</span><select id="setting-range">${[7, 14, 30].map((value) => `<option value="${value}" ${state.preferences.dashboardRange === value ? "selected" : ""}>${value} days</option>`).join("")}</select></label>${button("Save preferences", "save-settings", { kind: "primary" })}</div></article><article class="panel panel-danger">${panelHeader("Demo controls", "Dynamic client workspace")}<p>This browser stores one coherent generated dataset. Regenerating replaces employees, attendance, leave, devices, payroll, and activity together.</p><div class="stacked-actions">${button("Export state snapshot", "export-snapshot", { ico: "download" })}${button("Regenerate demo workspace", "regenerate-demo", { kind: "danger", ico: "refresh" })}</div><dl class="data-facts"><div><dt>Generated</dt><dd>${formatDateTime(state.createdAt)}</dd></div><div><dt>Last changed</dt><dd>${timeAgo(state.updatedAt)}</dd></div><div><dt>Dataset seed</dt><dd class="tabular">${esc(state.seed.slice(0, 18))}…</dd></div></dl></article><article class="panel">${panelHeader("Data provider", "Integration readiness")}<div class="provider-card"><span>${icon("check")}</span><div><strong>Generated browser provider</strong><p>All screens share the window.HFData provider. A Supabase provider can replace persistence without rebuilding the presentation layer.</p></div>${pill("Active")}</div><div class="provider-card muted"><span>${icon("building")}</span><div><strong>Supabase provider</strong><p>Project creation, authentication, RLS, and production tables are the next backend milestone.</p></div>${pill("Not connected")}</div></article></section></div>`;
+    return `<div class="page-stack"><section class="settings-grid"><article class="panel">${panelHeader("Workspace", "Organization settings")}<div class="form-stack"><label class="field"><span>Workspace name</span><input id="setting-workspace-name" value="${esc(state.workspace.name)}"></label><label class="field"><span>Organization name</span><input id="setting-organization" value="${esc(state.workspace.organization)}"></label><label class="field"><span>Currency</span><select id="setting-currency"><option ${state.workspace.currency === "NPR" ? "selected" : ""}>NPR</option><option ${state.workspace.currency === "USD" ? "selected" : ""}>USD</option></select></label>${button("Save workspace", "save-settings", { kind: "primary" })}</div></article><article class="panel">${panelHeader("Appearance", "Interface preferences")}<div class="form-stack"><label class="field"><span>Theme</span><select id="setting-theme"><option value="light" ${state.preferences.theme === "light" ? "selected" : ""}>Light</option><option value="dark" ${state.preferences.theme === "dark" ? "selected" : ""}>Dark</option></select></label><label class="field"><span>Density</span><select id="setting-density"><option value="comfortable" ${state.preferences.density === "comfortable" ? "selected" : ""}>Comfortable</option><option value="compact" ${state.preferences.density === "compact" ? "selected" : ""}>Compact</option></select></label><label class="field"><span>Dashboard range</span><select id="setting-range">${[7, 14, 30].map((value) => `<option value="${value}" ${state.preferences.dashboardRange === value ? "selected" : ""}>${value} days</option>`).join("")}</select></label>${button("Save preferences", "save-settings", { kind: "primary" })}</div></article><article class="panel panel-danger">${panelHeader("Demo controls", "Dynamic client workspace")}<p>This browser stores one coherent generated dataset. Regenerating replaces employees, attendance, leave, devices, payroll, and activity together.</p><div class="stacked-actions">${button("Export state snapshot", "export-snapshot", { ico: "download" })}${button("Regenerate demo workspace", "regenerate-demo", { kind: "danger", ico: "refresh" })}</div><dl class="data-facts"><div><dt>Generated</dt><dd>${formatDateTime(state.createdAt)}</dd></div><div><dt>Last changed</dt><dd>${timeAgo(state.updatedAt)}</dd></div><div><dt>Dataset seed</dt><dd class="tabular">${esc(state.seed.slice(0, 18))}…</dd></div></dl></article><article class="panel">${panelHeader("Data provider", "Integration readiness")}<div class="provider-card"><span>${icon("check")}</span><div><strong>Generated browser provider</strong><p>All screens share the window.HFData provider. A reviewed API-backed provider must replace generated operational state before production views are enabled.</p></div>${pill("Demo only")}</div><div class="provider-card muted"><span>${icon("building")}</span><div><strong>Authoritative API provider</strong><p>Production stays locked until organization-scoped workforce, attendance, device, reporting, and payroll data is loaded from the reviewed server APIs.</p></div>${pill("Integration required")}</div></article></section></div>`;
   }
 
-  const routes = {
-    overview: renderOverview,
-    attendance: renderAttendance,
-    employees: renderEmployees,
-    leave: renderLeave,
-    reports: renderReports,
-    devices: renderDevices,
-    payroll: renderPayroll,
-    organization: renderOrganization,
-    settings: renderSettings,
-  };
-
-  function minutesToLabel(minutes) {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return `${hours % 12 || 12}:${String(mins).padStart(2, "0")} ${hours >= 12 ? "PM" : "AM"}`;
-  }
+  const routes = { overview: renderOverview, attendance: renderAttendance, employees: renderEmployees, leave: renderLeave, reports: renderReports, devices: renderDevices, payroll: renderPayroll, organization: renderOrganization, settings: renderSettings };
 
   function modal(title, body, options = {}) {
+    modalLayer.innerHTML = `<div class="modal-backdrop" data-action="close-modal"></div><section class="modal ${options.wide ? "modal-wide" : ""}" role="dialog" aria-modal="true" aria-labelledby="modal-title"><header class="modal-header"><div><p>${esc(options.eyebrow || "HajiriFlow")}</p><h2 id="modal-title">${esc(title)}</h2></div><button type="button" class="icon-button" data-action="close-modal" aria-label="Close dialog">${icon("close")}</button></header><div class="modal-body">${body}</div>${options.footer ? `<footer class="modal-footer">${options.footer}</footer>` : ""}</section>`;
     modalLayer.hidden = false;
-    modalLayer.innerHTML = `<button class="modal-backdrop" data-action="close-modal" aria-label="Close dialog"></button><section class="modal ${options.wide ? "modal-wide" : ""}" role="dialog" aria-modal="true" aria-labelledby="modal-title"><header><div><p class="eyebrow">${esc(options.eyebrow || "HajiriFlow")}</p><h2 id="modal-title">${esc(title)}</h2></div><button class="icon-button" data-action="close-modal" aria-label="Close">${icon("close")}</button></header><div class="modal-body">${body}</div>${options.footer ? `<footer>${options.footer}</footer>` : ""}</section>`;
-    $("input, select, button", modalLayer)?.focus();
+    requestAnimationFrame(() => modalLayer.querySelector("input, select, textarea, button")?.focus());
   }
 
   function closeModal() { modalLayer.hidden = true; modalLayer.innerHTML = ""; }
-  function toast(message, kind = "success") {
+  function toast(message, kind = "info") {
     const item = document.createElement("div");
     item.className = `toast toast-${kind}`;
-    item.innerHTML = `${icon(kind === "danger" ? "alert" : "check")}<span>${esc(message)}</span>`;
+    const text = document.createElement("span");
+    text.textContent = String(message ?? "");
+    item.append(text);
     toastRegion.append(item);
     requestAnimationFrame(() => item.classList.add("is-visible"));
-    setTimeout(() => { item.classList.remove("is-visible"); setTimeout(() => item.remove(), 180); }, 3200);
+    setTimeout(() => { item.classList.remove("is-visible"); setTimeout(() => item.remove(), 220); }, 3200);
   }
 
-  function employeeForm(person = null) {
-    const nextAttId = String(Math.max(...S().employees.map((item) => Number(item.attId))) + 1);
-    modal(person ? "Edit employee" : "Add employee", `<form class="form-grid" data-form="employee" data-id="${person?.id || ""}"><label class="field field-wide"><span>Full name</span><input name="name" required value="${esc(person?.name || "")}"></label><label class="field field-wide"><span>Email</span><input name="email" type="email" required value="${esc(person?.email || "")}"></label><label class="field"><span>Attendance ID</span><input name="attId" required value="${esc(person?.attId || nextAttId)}"></label><label class="field"><span>Status</span><select name="status"><option ${person?.status !== "Inactive" ? "selected" : ""}>Active</option><option ${person?.status === "Inactive" ? "selected" : ""}>Inactive</option></select></label><label class="field"><span>Department</span><select name="departmentId">${S().departments.map((item) => `<option value="${item.id}" ${person?.departmentId === item.id ? "selected" : ""}>${esc(item.name)}</option>`).join("")}</select></label><label class="field"><span>Shift</span><select name="shiftId">${S().shifts.map((item) => `<option value="${item.id}" ${person?.shiftId === item.id ? "selected" : ""}>${esc(item.label)}</option>`).join("")}</select></label><label class="field"><span>Role</span><input name="role" required value="${esc(person?.role || "Officer")}"></label><label class="field"><span>Section</span><input name="section" required value="${esc(person?.section || "Operations")}"></label><label class="field"><span>Employment type</span><select name="employmentType"><option ${person?.employmentType !== "Contract" ? "selected" : ""}>Permanent</option><option ${person?.employmentType === "Contract" ? "selected" : ""}>Contract</option></select></label><label class="field"><span>Base salary</span><input name="salary" type="number" min="0" required value="${person?.salary || 55000}"></label><div class="form-actions field-wide">${button("Cancel", "close-modal", { kind: "ghost" })}<button class="button button-primary" type="submit">Save employee</button></div></form>`, { eyebrow: "People directory" });
+  function employeeForm(item = null) {
+    const current = item || { name: "", email: "", attId: "", departmentId: S().departments[0]?.id, shiftId: S().shifts[0]?.id, role: "Associate", section: "", employmentType: "Permanent", salary: 50000, status: "Active" };
+    return `<form class="form-stack" data-form="employee" data-id="${current.id || ""}"><div class="form-grid two"><label class="field"><span>Full name</span><input name="name" required value="${esc(current.name)}"></label><label class="field"><span>Email</span><input name="email" type="email" required value="${esc(current.email)}"></label><label class="field"><span>Attendance ID</span><input name="attId" required value="${esc(current.attId)}"></label><label class="field"><span>Role</span><input name="role" required value="${esc(current.role)}"></label><label class="field"><span>Department</span><select name="departmentId">${S().departments.map((item) => `<option value="${item.id}" ${item.id === current.departmentId ? "selected" : ""}>${esc(item.name)}</option>`).join("")}</select></label><label class="field"><span>Shift</span><select name="shiftId">${S().shifts.map((item) => `<option value="${item.id}" ${item.id === current.shiftId ? "selected" : ""}>${esc(item.label)}</option>`).join("")}</select></label><label class="field"><span>Section</span><input name="section" value="${esc(current.section)}"></label><label class="field"><span>Employment</span><select name="employmentType">${["Permanent", "Contract", "Part-time"].map((value) => `<option ${value === current.employmentType ? "selected" : ""}>${value}</option>`).join("")}</select></label><label class="field"><span>Base salary</span><input name="salary" type="number" min="0" step="500" value="${current.salary}"></label><label class="field"><span>Status</span><select name="status"><option ${current.status === "Active" ? "selected" : ""}>Active</option><option ${current.status === "Inactive" ? "selected" : ""}>Inactive</option></select></label></div><footer class="form-actions"><button type="button" class="button button-secondary" data-action="close-modal">Cancel</button><button type="submit" class="button button-primary">${item ? "Save changes" : "Create employee"}</button></footer></form>`;
   }
 
-  function attendanceForm(record = null) {
-    modal(record ? "Attendance evidence" : "Add attendance correction", `<form class="form-grid" data-form="attendance" data-id="${record?.id || ""}"><label class="field field-wide"><span>Employee</span><select name="employeeId">${S().employees.filter((item) => item.status === "Active").map((item) => `<option value="${item.id}" ${record?.employeeId === item.id ? "selected" : ""}>${esc(item.name)} · ${esc(item.attId)}</option>`).join("")}</select></label><label class="field"><span>Date</span><input name="date" type="date" required value="${record?.date || ui.date}"></label><label class="field"><span>Status</span><select name="status">${["Present", "Late", "Absent", "Leave", "Field duty"].map((status) => `<option ${record?.status === status ? "selected" : ""}>${status}</option>`).join("")}</select></label><label class="field"><span>Check in</span><input name="checkIn" type="time" value="${record?.checkIn || "09:00"}"></label><label class="field"><span>Check out</span><input name="checkOut" type="time" value="${record?.checkOut || "17:00"}"></label><label class="field field-wide"><span>Evidence or reason</span><input name="source" required value="${esc(record?.source || "Manual correction")}"></label><div class="form-actions field-wide">${button("Cancel", "close-modal", { kind: "ghost" })}<button class="button button-primary" type="submit">Save correction</button></div></form>`, { eyebrow: "Attendance evidence" });
+  function attendanceForm(item = null) {
+    const current = item || { employeeId: S().employees[0]?.id, date: ui.date, status: "Present", checkIn: "09:00", checkOut: "17:30", source: "Manual correction" };
+    return `<form class="form-stack" data-form="attendance" data-id="${current.id || ""}"><div class="form-grid two"><label class="field"><span>Employee</span><select name="employeeId">${S().employees.filter((item) => item.status === "Active").map((person) => `<option value="${person.id}" ${person.id === current.employeeId ? "selected" : ""}>${esc(person.name)} · ${esc(person.attId)}</option>`).join("")}</select></label><label class="field"><span>Date</span><input type="date" name="date" value="${current.date}"></label><label class="field"><span>Status</span><select name="status">${["Present", "Late", "Absent", "Leave", "Field duty"].map((value) => `<option ${value === current.status ? "selected" : ""}>${value}</option>`).join("")}</select></label><label class="field"><span>Source</span><select name="source"><option ${current.source === "Manual correction" ? "selected" : ""}>Manual correction</option><option ${current.source === "Administrator entry" ? "selected" : ""}>Administrator entry</option></select></label><label class="field"><span>Check in</span><input type="time" name="checkIn" value="${current.checkIn || ""}"></label><label class="field"><span>Check out</span><input type="time" name="checkOut" value="${current.checkOut || ""}"></label></div><footer class="form-actions"><button type="button" class="button button-secondary" data-action="close-modal">Cancel</button><button type="submit" class="button button-primary">Save attendance</button></footer></form>`;
   }
 
-  function leaveForm(fieldDuty = false) {
-    modal(fieldDuty ? "Record field duty" : "Request leave", `<form class="form-grid" data-form="leave"><label class="field field-wide"><span>Employee</span><select name="employeeId">${S().employees.filter((item) => item.status === "Active").map((item) => `<option value="${item.id}">${esc(item.name)}</option>`).join("")}</select></label><label class="field"><span>Type</span><select name="type">${(fieldDuty ? ["Field duty"] : ["Home leave", "Sick leave", "Casual leave", "Unpaid leave", "Study leave"]).map((type) => `<option>${type}</option>`).join("")}</select></label><label class="field"><span>Status</span><select name="status"><option>Pending</option><option>Approved</option></select></label><label class="field"><span>Start</span><input name="startDate" type="date" value="${D.isoDate(new Date())}"></label><label class="field"><span>End</span><input name="endDate" type="date" value="${D.isoDate(new Date())}"></label><label class="field field-wide"><span>Reason</span><textarea name="reason" required></textarea></label><div class="form-actions field-wide">${button("Cancel", "close-modal", { kind: "ghost" })}<button class="button button-primary" type="submit">Save request</button></div></form>`, { eyebrow: fieldDuty ? "Kaaj workflow" : "Leave workflow" });
+  function leaveForm(kind = "leave") {
+    const today = D.isoDate(new Date());
+    return `<form class="form-stack" data-form="leave"><div class="form-grid two"><label class="field"><span>Employee</span><select name="employeeId">${S().employees.filter((item) => item.status === "Active").map((person) => `<option value="${person.id}">${esc(person.name)} · ${esc(person.employeeCode)}</option>`).join("")}</select></label><label class="field"><span>Type</span><select name="type"><option>${kind === "field" ? "Field duty" : "Annual leave"}</option><option>Sick leave</option><option>Casual leave</option><option>Unpaid leave</option><option>Field duty</option></select></label><label class="field"><span>Start date</span><input type="date" name="startDate" value="${today}" required></label><label class="field"><span>End date</span><input type="date" name="endDate" value="${today}" required></label><label class="field field-wide"><span>Reason</span><textarea name="reason" rows="3" required placeholder="Add a clear reason for audit history"></textarea></label><label class="field"><span>Status</span><select name="status"><option>Pending</option><option>Approved</option></select></label></div><footer class="form-actions"><button type="button" class="button button-secondary" data-action="close-modal">Cancel</button><button type="submit" class="button button-primary">Save request</button></footer></form>`;
   }
 
-  function employeeDetails(id) {
+  function deviceForm() {
+    return `<form class="form-stack" data-form="device"><div class="form-grid two"><label class="field"><span>Device name</span><input name="name" required placeholder="Main Gate Reader"></label><label class="field"><span>Location</span><input name="location" required placeholder="Head Office"></label><label class="field"><span>Model</span><input name="model" required placeholder="ZKTeco K40"></label><label class="field"><span>IP address</span><input name="ip" required placeholder="192.168.1.201"></label><label class="field"><span>Port</span><input name="port" type="number" value="4370" required></label></div><footer class="form-actions"><button type="button" class="button button-secondary" data-action="close-modal">Cancel</button><button type="submit" class="button button-primary">Add device</button></footer></form>`;
+  }
+
+  function departmentForm() {
+    return `<form class="form-stack" data-form="department"><div class="form-grid two"><label class="field"><span>Name</span><input name="name" required placeholder="Customer Success"></label><label class="field"><span>Code</span><input name="code" required placeholder="CS"></label><label class="field"><span>Cost center</span><input name="budgetCenter" required placeholder="CC-700"></label></div><footer class="form-actions"><button type="button" class="button button-secondary" data-action="close-modal">Cancel</button><button type="submit" class="button button-primary">Add department</button></footer></form>`;
+  }
+
+  function shiftForm() {
+    return `<form class="form-stack" data-form="shift"><div class="form-grid two"><label class="field"><span>Shift name</span><input name="label" required placeholder="Standard shift"></label><label class="field"><span>Start time</span><input name="start" type="time" value="09:00" required></label><label class="field"><span>End time</span><input name="end" type="time" value="17:30" required></label><label class="field"><span>Grace minutes</span><input name="grace" type="number" min="0" value="10"></label><label class="field"><span>Break minutes</span><input name="breakMinutes" type="number" min="0" value="60"></label></div><footer class="form-actions"><button type="button" class="button button-secondary" data-action="close-modal">Cancel</button><button type="submit" class="button button-primary">Add shift</button></footer></form>`;
+  }
+
+  function viewEmployee(id) {
     const person = employee(id);
     if (!person) return;
-    const records = S().attendance.filter((record) => record.employeeId === id && record.status !== "Weekly off");
-    const present = records.filter((record) => ["Present", "Late", "Field duty"].includes(record.status)).length;
-    modal(person.name, `<div class="profile-sheet"><div class="profile-identity">${avatar(person, "large")}<div><h3>${esc(person.role)}</h3><p>${esc(department(person.departmentId)?.name || "Unassigned")} · ${esc(person.section)}</p>${pill(person.status)}</div></div><div class="profile-stats"><div><span>Attendance rate</span><strong>${records.length ? Math.round((present / records.length) * 100) : 100}%</strong></div><div><span>Base salary</span><strong>${D.formatMoney(person.salary)}</strong></div><div><span>Shift</span><strong>${esc(shift(person.shiftId)?.label || "—")}</strong></div></div><dl class="profile-details"><div><dt>Employee code</dt><dd>${esc(person.employeeCode)}</dd></div><div><dt>Attendance ID</dt><dd>${esc(person.attId)}</dd></div><div><dt>Email</dt><dd>${esc(person.email)}</dd></div><div><dt>Phone</dt><dd>${esc(person.phone)}</dd></div><div><dt>Employment</dt><dd>${esc(person.employmentType)}</dd></div><div><dt>Device</dt><dd>${esc(device(person.deviceId)?.name || "Unassigned")}</dd></div></dl></div>`, { wide: true, eyebrow: person.employeeCode, footer: button("Edit profile", "edit-employee", { kind: "primary", ico: "edit", id: person.id }) });
+    const records = S().attendance.filter((item) => item.employeeId === id).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 8);
+    modal(person.name, `<div class="employee-detail"><header>${avatar(person, "large")}<div><p>${esc(person.employeeCode)} · Attendance ${esc(person.attId)}</p><h3>${esc(person.role)}</h3><span>${esc(department(person.departmentId)?.name || "Unassigned")} · ${esc(person.section)}</span></div></header><dl class="detail-list"><div><dt>Email</dt><dd>${esc(person.email)}</dd></div><div><dt>Phone</dt><dd>${esc(person.phone)}</dd></div><div><dt>Shift</dt><dd>${esc(shift(person.shiftId)?.label || "Unassigned")}</dd></div><div><dt>Employment</dt><dd>${esc(person.employmentType)}</dd></div><div><dt>Base salary</dt><dd>${D.formatMoney(person.salary)}</dd></div><div><dt>Status</dt><dd>${pill(person.status)}</dd></div></dl><section><h3>Recent attendance</h3>${records.length ? `<div class="mini-records">${records.map((item) => `<div><span>${formatDate(item.date)}</span>${pill(item.status)}<small>${item.checkIn || "—"} · ${worked(item.workedMinutes)}</small></div>`).join("")}</div>` : empty("No attendance", "This person has no records in the generated history.")}</section></div>`, { eyebrow: "Employee record", wide: true });
   }
 
-  function requestDetails(id) {
-    const request = S().leaveRequests.find((item) => item.id === id);
-    const person = employee(request?.employeeId);
-    if (!request) return;
-    modal(`${request.type} request`, `<div class="detail-stack"><div class="detail-person">${avatar(person, "medium")}<div><strong>${esc(person?.name)}</strong><small>${esc(department(person?.departmentId)?.name || "")}</small></div>${pill(request.status)}</div><dl class="detail-list"><div><dt>Dates</dt><dd>${formatDate(request.startDate)} to ${formatDate(request.endDate)}</dd></div><div><dt>Duration</dt><dd>${request.days} days</dd></div><div><dt>Reason</dt><dd>${esc(request.reason)}</dd></div></dl></div>`);
+  function viewAttendance(id) {
+    const record = S().attendance.find((item) => item.id === id);
+    if (!record) return;
+    const person = employee(record.employeeId);
+    modal("Attendance evidence", `<div class="detail-stack"><div class="evidence-header">${avatar(person, "medium")}<div><h3>${esc(person?.name)}</h3><p>${formatDate(record.date)} · ${esc(person?.employeeCode)}</p></div>${pill(record.status)}</div><dl class="detail-list"><div><dt>Check in</dt><dd>${record.checkIn || "—"}</dd></div><div><dt>Check out</dt><dd>${record.checkOut || "—"}</dd></div><div><dt>Worked</dt><dd>${worked(record.workedMinutes)}</dd></div><div><dt>Late</dt><dd>${record.lateMinutes} min</dd></div><div><dt>Source</dt><dd>${esc(record.source)}</dd></div><div><dt>Device</dt><dd>${esc(device(record.deviceId)?.name || "Manual")}</dd></div></dl></div>`, { eyebrow: "Record evidence", footer: `<button type="button" class="button button-primary" data-action="edit-attendance" data-id="${record.id}">Add correction</button>` });
   }
 
-  function simpleForm(type, title, fields) {
-    modal(title, `<form class="form-grid" data-form="${type}">${fields}<div class="form-actions field-wide">${button("Cancel", "close-modal", { kind: "ghost" })}<button class="button button-primary" type="submit">Save</button></div></form>`);
-  }
-
-  function setLeave(id, status) {
-    D.mutate((state) => {
-      const request = state.leaveRequests.find((item) => item.id === id);
-      if (!request) return;
-      request.status = status;
-      request.reviewedAt = new Date().toISOString();
-      state.activities.unshift({ id: D.newId("activity"), verb: status.toLowerCase(), subject: `${request.type} request`, actor: "Nischhal Subba", occurredAt: new Date().toISOString(), type: "leave" });
-    });
-    closeModal();
-    toast(`Request ${status.toLowerCase()}`);
-    render();
-  }
-
-  function payrollAction(key, action) {
-    D.mutate((state) => {
-      const period = state.payrollPeriods.find((item) => item.key === key);
-      if (!period) return;
-      if (action === "generate-payroll") { period.generatedAt = new Date().toISOString(); period.status = "Draft"; period.locked = false; }
-      if (action === "approve-payroll") period.status = "Approved";
-      if (action === "pay-payroll") { period.status = "Paid"; period.locked = true; }
-      state.activities.unshift({ id: D.newId("activity"), verb: action.replace("-payroll", ""), subject: `${period.label} payroll`, actor: "Nischhal Subba", occurredAt: new Date().toISOString(), type: "payroll" });
-    });
-    toast("Payroll status updated");
-    render();
-  }
-
-  function generateReport(key) {
-    D.mutate((state) => state.activities.unshift({ id: D.newId("activity"), verb: "generated", subject: `${key} report`, actor: "Nischhal Subba", occurredAt: new Date().toISOString(), type: "report" }));
-    if (key === "daily") exportAttendance();
-    else if (key === "payroll") exportPayroll(ui.payrollPeriod);
-    else exportEmployees(`${key}-report`);
-    toast("Report generated");
-    render();
-  }
-
-  function action(name, target) {
-    const id = target.dataset.id;
-    const key = target.dataset.key;
-    switch (name) {
-      case "add-employee": employeeForm(); break;
-      case "edit-employee": employeeForm(employee(id)); break;
-      case "view-employee": employeeDetails(id); break;
-      case "manual-attendance": attendanceForm(); break;
-      case "view-attendance": attendanceForm(S().attendance.find((record) => record.id === id)); break;
-      case "request-leave": leaveForm(false); break;
-      case "record-field-duty": leaveForm(true); break;
-      case "view-leave": requestDetails(id); break;
-      case "approve-leave": setLeave(id, "Approved"); break;
-      case "reject-leave": setLeave(id, "Rejected"); break;
-      case "add-device": simpleForm("device", "Add biometric reader", `<label class="field field-wide"><span>Reader name</span><input name="name" required></label><label class="field"><span>Location</span><input name="location" required></label><label class="field"><span>Model</span><input name="model" required value="SpeedFace V5L"></label><label class="field"><span>IP address</span><input name="ip" required value="192.168.20.100"></label><label class="field"><span>Port</span><input name="port" type="number" value="4370"></label>`); break;
-      case "add-department": simpleForm("department", "Add department", `<label class="field field-wide"><span>Name</span><input name="name" required></label><label class="field"><span>Code</span><input name="code" required></label><label class="field"><span>Cost center</span><input name="budgetCenter" required></label>`); break;
-      case "add-shift": simpleForm("shift", "Add shift", `<label class="field field-wide"><span>Shift name</span><input name="label" required></label><label class="field"><span>Start</span><input name="start" type="time" value="09:00"></label><label class="field"><span>End</span><input name="end" type="time" value="17:00"></label><label class="field"><span>Grace minutes</span><input name="grace" type="number" value="10"></label><label class="field"><span>Break minutes</span><input name="breakMinutes" type="number" value="60"></label>`); break;
-      case "test-device": D.simulateDeviceAction(id, "test"); toast("Connection test completed"); render(); break;
-      case "sync-device": D.simulateDeviceAction(id, "sync"); toast("Device users synchronized"); render(); break;
-      case "pull-device": D.simulateDeviceAction(id, "pull"); toast("Attendance pull completed"); render(); break;
-      case "pull-all-devices": S().devices.forEach((item) => D.simulateDeviceAction(item.id, "pull")); toast("All readers pulled successfully"); render(); break;
-      case "reprocess-today": D.replaceAttendanceForDate(D.isoDate(new Date())); toast("Today's attendance recalculated"); render(); break;
-      case "go-attendance": location.hash = "attendance"; break;
-      case "go-settings": closeModal(); location.hash = "settings"; break;
-      case "generate-report": generateReport(key); break;
-      case "generate-payroll": case "approve-payroll": case "pay-payroll": payrollAction(key, name); break;
-      case "export-attendance": exportAttendance(); break;
-      case "export-employees": exportEmployees(); break;
-      case "export-payroll": exportPayroll(key || ui.payrollPeriod); break;
-      case "export-activity": exportActivity(); break;
-      case "export-snapshot": download("hajiriflow-demo-snapshot.json", JSON.stringify(S(), null, 2), "application/json"); break;
-      case "regenerate-demo": modal("Regenerate demo workspace", `<p>This replaces every generated employee, record, request, device, payroll input, and activity in this browser.</p>`, { eyebrow: "Destructive demo action", footer: `${button("Cancel", "close-modal", { kind: "ghost" })}${button("Regenerate everything", "confirm-regenerate", { kind: "danger", ico: "refresh" })}` }); break;
-      case "confirm-regenerate": D.regenerate(); closeModal(); toast("A new demo workspace was generated"); render(); break;
-      case "save-settings": saveSettings(); break;
-      case "notifications": openNotifications(); break;
-      case "profile-menu": openProfile(); break;
-      case "open-command-menu": openCommands(); break;
-      case "close-modal": closeModal(); break;
-      case "view-department": viewDepartment(id); break;
-      default: break;
-    }
-  }
-
-  function saveSettings() {
-    D.mutate((state) => {
-      state.workspace.name = $("#setting-workspace-name")?.value.trim() || state.workspace.name;
-      state.workspace.organization = $("#setting-organization")?.value.trim() || state.workspace.organization;
-      state.workspace.currency = $("#setting-currency")?.value || state.workspace.currency;
-      state.preferences.theme = $("#setting-theme")?.value || state.preferences.theme;
-      state.preferences.density = $("#setting-density")?.value || state.preferences.density;
-      state.preferences.dashboardRange = Number($("#setting-range")?.value || state.preferences.dashboardRange);
-    });
-    toast("Settings saved");
-    render();
+  function viewLeave(id) {
+    const item = S().leaveRequests.find((request) => request.id === id);
+    const person = employee(item?.employeeId);
+    if (!item) return;
+    modal("Leave request", `<div class="detail-stack"><div class="evidence-header">${avatar(person, "medium")}<div><h3>${esc(person?.name)}</h3><p>${esc(item.type)} · ${item.days} days</p></div>${pill(item.status)}</div><dl class="detail-list"><div><dt>Dates</dt><dd>${formatDate(item.startDate)} – ${formatDate(item.endDate)}</dd></div><div><dt>Reason</dt><dd>${esc(item.reason)}</dd></div><div><dt>Submitted</dt><dd>${formatDateTime(item.appliedAt)}</dd></div><div><dt>Reviewed</dt><dd>${item.reviewedAt ? formatDateTime(item.reviewedAt) : "Pending"}</dd></div></dl></div>`, { eyebrow: "Approval record" });
   }
 
   function viewDepartment(id) {
@@ -529,10 +445,10 @@
     if (((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") || (event.key === "/" && !typing)) { event.preventDefault(); openCommands(); }
     if (event.key === "Escape") { commandLayer.hidden = true; closeModal(); shell.classList.remove("sidebar-is-open"); }
   });
-  window.addEventListener("hashchange", render);
+  window.addEventListener("hashchange", () => render({ focusWorkspace: true }));
   window.addEventListener("resize", () => { if (innerWidth > 980) shell.classList.remove("sidebar-is-open"); });
   D.subscribe(() => renderNav());
   updateClock();
   setInterval(updateClock, 1000);
-  render();
+  render({ focusWorkspace: true });
 })();
