@@ -1,52 +1,9 @@
 (() => {
   "use strict";
 
-  const COPY_REPLACEMENTS = new Map([
-    ["HajiriFlow Demo", "HajiriFlow"],
-    ["Generated demo workspace", "Attendance operations online"],
-    ["Live demo workspace", "Workforce operations"],
-    [
-      "Every figure below is calculated from the generated workforce dataset in this browser.",
-      "Monitor attendance, leave, device health, and payroll activity across your organization.",
-    ],
-    ["Generated from daily evidence", "Calculated from attendance records"],
-    [
-      "A live workforce directory generated from the same state used by attendance and payroll.",
-      "Manage employee profiles, assignments, attendance IDs, and employment status.",
-    ],
-    ["Across generated requests", "Across approved requests"],
-    ["Current demo workflow", "Current leave workflow"],
-    [
-      "Generate exportable reports from the shared dynamic workforce state.",
-      "Generate exportable reports from current workforce, attendance, leave, and payroll records.",
-    ],
-    ["Calculated from generated evidence", "Calculated from attendance records"],
-    ["Across the generated history", "Across available attendance history"],
-    ["Ready for client walkthrough", "Available report templates"],
-    [
-      "Review generated connectivity, registrations, and worker actions for each biometric reader.",
-      "Review connectivity, registrations, and worker actions for each biometric reader.",
-    ],
-    ["Current generated health state", "Current reader health"],
-    [
-      "Generated payroll totals recalculate from attendance, salaries, deductions, and overtime.",
-      "Payroll totals recalculate from attendance, salaries, deductions, and overtime.",
-    ],
-    ["Dynamic client workspace", "Data management"],
-    [
-      "This browser stores one coherent generated dataset. Regenerating replaces employees, attendance, leave, devices, payroll, and activity together.",
-      "Export the current workforce snapshot for controlled backup or migration.",
-    ],
-    ["Generated browser provider", "Application data provider"],
-    [
-      "All screens share the window.HFData provider. A Supabase provider can replace persistence without rebuilding the presentation layer.",
-      "Workforce modules share one application data provider and consistent permission boundary.",
-    ],
-    ["Signed-in demo user", "Signed-in user"],
-    ["Changes saved to the dynamic demo", "Changes saved"],
-    ["A new demo workspace was generated", "Workspace reset completed"],
-  ]);
-
+  const config = window.__HAJIRIFLOW_CONFIG__ || {};
+  const isProduction = config.environment === "production";
+  const operationalDataMode = String(config.operationalDataMode || "demo");
   const HIDDEN_ACTIONS = new Set([
     "regenerate-demo",
     "confirm-regenerate",
@@ -54,68 +11,131 @@
     "remove-employee-photo",
   ]);
 
-  function sanitizeText(root = document) {
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-    const nodes = [];
-    while (walker.nextNode()) nodes.push(walker.currentNode);
-    nodes.forEach((node) => {
-      const replacement = COPY_REPLACEMENTS.get(node.nodeValue.trim());
-      if (replacement) {
-        node.nodeValue = node.nodeValue.replace(node.nodeValue.trim(), replacement);
-      }
-    });
-  }
-
   function hideNonProductionControls(root = document) {
     root.querySelectorAll?.("[data-action], [data-command-action]").forEach((element) => {
       const action = element.dataset.action || element.dataset.commandAction;
       if (HIDDEN_ACTIONS.has(action)) element.remove();
     });
-
     root.querySelectorAll?.(".profile-photo-actions").forEach((element) => element.remove());
     root.querySelectorAll?.(".provider-card.muted").forEach((element) => element.remove());
-
-    root.querySelectorAll?.(".data-facts > div").forEach((row) => {
-      const label = row.querySelector("dt")?.textContent?.trim().toLowerCase();
-      if (label === "dataset seed" || label === "generated") row.remove();
-    });
   }
 
-  function normalizeWorkspaceIdentity() {
-    if (!window.HFData?.mutate) return;
-    const state = window.HFData.getState?.();
-    if (!state?.workspace) return;
-    if (
-      state.workspace.name === "HajiriFlow"
-      && state.workspace.organization !== "HajiriFlow Demo"
-    ) return;
+  function statusRow(label, value, tone) {
+    const row = document.createElement("div");
+    row.className = "production-boundary-status";
 
-    window.HFData.mutate((draft) => {
-      draft.workspace.name = "HajiriFlow";
-      if (!draft.workspace.organization || /demo/i.test(draft.workspace.organization)) {
-        draft.workspace.organization = "HajiriFlow Operations";
-      }
-    });
+    const marker = document.createElement("span");
+    marker.className = `production-boundary-dot is-${tone}`;
+    marker.setAttribute("aria-hidden", "true");
+
+    const copy = document.createElement("div");
+    const strong = document.createElement("strong");
+    strong.textContent = label;
+    const small = document.createElement("small");
+    small.textContent = value;
+    copy.append(strong, small);
+    row.append(marker, copy);
+    return row;
+  }
+
+  function createIntegrationBoundary(session) {
+    const section = document.createElement("section");
+    section.id = "production-data-boundary";
+    section.className = "production-data-boundary";
+    section.setAttribute("role", "status");
+    section.setAttribute("aria-labelledby", "production-data-boundary-title");
+
+    const eyebrow = document.createElement("p");
+    eyebrow.className = "eyebrow";
+    eyebrow.textContent = "Production safety";
+
+    const title = document.createElement("h2");
+    title.id = "production-data-boundary-title";
+    title.textContent = "Operational data connection required";
+
+    const intro = document.createElement("p");
+    intro.className = "production-boundary-intro";
+    intro.textContent = "Your identity is verified, but this frontend release has not yet enabled an authoritative API-backed provider for workforce, attendance, device, reporting, and payroll records. Those views are locked rather than showing generated browser data as if it were live.";
+
+    const statuses = document.createElement("div");
+    statuses.className = "production-boundary-statuses";
+    statuses.append(
+      statusRow("Identity and access", `Verified as ${session?.user?.display_name || session?.user?.username || "authenticated user"}`, "ready"),
+      statusRow("Operational records", "Locked until the API-backed data provider is enabled", "blocked"),
+      statusRow("Generated demo records", "Never presented as authoritative production data", "blocked"),
+    );
+
+    const guidance = document.createElement("p");
+    guidance.className = "production-boundary-guidance";
+    guidance.textContent = "Deployment owners must connect the reviewed FastAPI/PostgreSQL application stack and complete production smoke evidence before enabling operational views.";
+
+    const actions = document.createElement("div");
+    actions.className = "production-boundary-actions";
+    const signOut = document.createElement("button");
+    signOut.className = "button button-secondary";
+    signOut.type = "button";
+    signOut.dataset.identityLogout = "";
+    signOut.textContent = "Sign out";
+    actions.append(signOut);
+
+    section.append(eyebrow, title, intro, statuses, guidance, actions);
+    return section;
+  }
+
+  function disableGeneratedWorkspace(session) {
+    if (!isProduction || operationalDataMode !== "integration-required") return;
+
+    document.documentElement.dataset.environment = "production";
+    document.body.classList.add("production-data-blocked");
+
+    const appMain = document.querySelector(".app-main");
+    const workspace = document.getElementById("workspace");
+    const skeleton = document.getElementById("app-skeleton");
+    const existing = document.getElementById("production-data-boundary");
+    if (workspace) {
+      workspace.setAttribute("inert", "");
+      workspace.setAttribute("aria-hidden", "true");
+    }
+    if (skeleton) skeleton.setAttribute("aria-hidden", "true");
+
+    if (!existing && appMain) {
+      const boundary = createIntegrationBoundary(session);
+      appMain.append(boundary);
+      boundary.querySelector("button")?.focus();
+    }
+
+    const kicker = document.getElementById("page-kicker");
+    const title = document.getElementById("page-title");
+    if (kicker) kicker.textContent = "Production safety";
+    if (title) title.textContent = "Integration required";
+
+    document.querySelectorAll("#primary-nav a, #primary-nav button, [data-action='open-command-menu']")
+      .forEach((control) => {
+        control.setAttribute("aria-disabled", "true");
+        control.setAttribute("tabindex", "-1");
+      });
   }
 
   function polish(root = document) {
-    sanitizeText(root);
+    if (!isProduction) return;
     hideNonProductionControls(root);
     document.title = "HajiriFlow | Workforce Operations";
     document.documentElement.dataset.environment = "production";
   }
 
-  const observer = new MutationObserver((records) => {
-    records.forEach((record) => record.addedNodes.forEach((node) => {
-      if (node instanceof Element) polish(node);
-    }));
-    polish(document);
-  });
+  if (isProduction) {
+    const observer = new MutationObserver((records) => {
+      records.forEach((record) => record.addedNodes.forEach((node) => {
+        if (node instanceof Element) hideNonProductionControls(node);
+      }));
+    });
+    observer.observe(document.documentElement, { childList: true, subtree: true });
 
-  observer.observe(document.documentElement, { childList: true, subtree: true });
-  window.addEventListener("load", () => {
-    normalizeWorkspaceIdentity();
+    window.addEventListener("hajiriflow:identity-ready", (event) => {
+      polish(document);
+      disableGeneratedWorkspace(event.detail?.session || window.HFIdentity?.session);
+    });
+    window.addEventListener("load", () => polish(document), { once: true });
     polish(document);
-  }, { once: true });
-  polish(document);
+  }
 })();

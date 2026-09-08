@@ -36,9 +36,18 @@ def test_employee_photo_picker_is_disabled_in_production_and_not_persisted() -> 
     assert "const customPhotos = new Map();" in MEDIA
 
 
-def test_demo_language_and_destructive_demo_controls_are_removed() -> None:
-    assert '"HajiriFlow Demo", "HajiriFlow"' in PRODUCTION
-    assert '"Live demo workspace", "Workforce operations"' in PRODUCTION
+def test_production_generated_operational_data_fails_closed() -> None:
+    assert "COPY_REPLACEMENTS" not in PRODUCTION
+    assert '"HajiriFlow Demo", "HajiriFlow"' not in PRODUCTION
+    assert '"Live demo workspace", "Workforce operations"' not in PRODUCTION
+    assert 'operationalDataMode !== "integration-required"' in PRODUCTION
+    assert "Operational data connection required" in PRODUCTION
+    assert 'workspace.setAttribute("inert", "")' in PRODUCTION
+    assert 'workspace.setAttribute("aria-hidden", "true")' in PRODUCTION
+    assert ".production-data-blocked #workspace" in CSS
+
+
+def test_destructive_demo_controls_are_removed_in_production() -> None:
     assert '"regenerate-demo"' in PRODUCTION
     assert '"confirm-regenerate"' in PRODUCTION
     assert "provider-card.muted" in PRODUCTION
