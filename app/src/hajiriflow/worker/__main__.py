@@ -2,7 +2,9 @@ import logging
 import time
 
 from hajiriflow.core.config import get_settings
+from hajiriflow.db.models.device import Device
 from hajiriflow.db.session import get_session_factory
+from hajiriflow.device_platform.adapters import DeviceAdapter
 from hajiriflow.device_platform.jobs import DeviceJobProcessor
 from hajiriflow.device_platform.runtime import (
     device_secret_cipher_from_environment,
@@ -26,12 +28,14 @@ def main() -> None:
     while True:
         session = get_session_factory()()
         try:
-            resolver = lambda device: resolve_device_adapter(
-                session,
-                device,
-                settings=settings,
-                cipher=device_cipher,
-            )
+            def resolver(device: Device) -> DeviceAdapter:
+                return resolve_device_adapter(
+                    session,
+                    device,
+                    settings=settings,
+                    cipher=device_cipher,
+                )
+
             jobs = DeviceJobProcessor(
                 session,
                 adapter_resolver=resolver,
