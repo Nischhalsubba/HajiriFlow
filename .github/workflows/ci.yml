@@ -69,6 +69,7 @@ jobs:
           grep -Fq '"operationalDataMode":"integration-required"' site/assets/runtime-config.js
           grep -Fq '/api/* https://api.example.invalid/api/:splat 200' site/_redirects
           grep -Fq '/* /index.html 200' site/_redirects
+          git checkout -- site/assets/runtime-config.js site/_redirects
 
       - name: Run tests
         run: pytest --cov=hajiriflow --cov-report=term-missing
