@@ -25,8 +25,8 @@ class DeviceJob(Base):
     __tablename__ = "device_jobs"
     __table_args__ = (
         CheckConstraint(
-            "job_type IN ('immediate_pull', 'historical_pull', 'sync_users', "
-            "'push_user', 'migrate_user', 'archive_user', 'restore_user')",
+            "job_type IN ('diagnostics', 'immediate_pull', 'historical_pull', "
+            "'sync_users', 'push_user', 'migrate_user', 'archive_user', 'restore_user')",
             name="device_job_valid_type",
         ),
         CheckConstraint(
