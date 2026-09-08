@@ -17,21 +17,21 @@ Status values:
 | HF-006 | Employee master | Full profile, status lifecycle, filters, export, soft restore | VERIFIED | HF-005 |
 | HF-007 | Shift definitions | Start/end, breaks, grace, overnight support | VERIFIED | HF-005 |
 | HF-008 | Effective shift assignments | Employee or org scope with effective date ranges | VERIFIED | HF-006, HF-007 |
-| HF-009 | Device registry | Vendor-neutral records, encrypted secret, status, diagnostics | PLANNED | HF-002 |
-| HF-010 | Device adapter contract | Capability-based adapter interface independent of vendor | PLANNED | HF-009 |
-| HF-011 | Connection diagnostics | Test connection and show actionable sanitized result | PLANNED | HF-010 |
-| HF-012 | Pull scheduling | PostgreSQL schedule, worker execution, distributed lock | PLANNED | HF-009, worker |
-| HF-013 | Immediate pull | Authorized command with job status and no web-process work | PLANNED | HF-012 |
-| HF-014 | Pull session history | Per-device counts, timings, status, warnings, errors | PLANNED | HF-012 |
-| HF-015 | Historical pull | Authorized date-range ingestion where device capability allows | PLANNED | HF-012 |
-| HF-016 | Device users | Paginated device registration inventory | PLANNED | HF-010 |
-| HF-017 | Employee-device mapping | Link many device registrations to one employee | PLANNED | HF-006, HF-016 |
-| HF-018 | Device comparison and sync | Preview unknown/missing users and execute approved actions | PLANNED | HF-017 |
-| HF-019 | Bulk device enrollment | Validate and push approved identities to selected devices | PLANNED | HF-018 |
-| HF-020 | Device-to-device migration | Dry-run and audited compatible user migration | PLANNED | HF-018 |
-| HF-021 | Encrypted device archive | Backup and restore supported identity/biometric payloads | PLANNED | HF-010, encryption |
-| HF-022 | Immutable punch ingestion | Append-only events, idempotency, UTC, source metadata | PLANNED | HF-012, HF-017 |
-| HF-023 | Unlinked punch review | Retain and map evidence without loss | PLANNED | HF-022 |
+| HF-009 | Device registry | Vendor-neutral records, encrypted secret, status, diagnostics | VERIFIED | HF-002 |
+| HF-010 | Device adapter contract | Capability-based adapter interface independent of vendor | VERIFIED | HF-009 |
+| HF-011 | Connection diagnostics | Test connection and show actionable sanitized result | VERIFIED | HF-010 |
+| HF-012 | Pull scheduling | PostgreSQL schedule, worker execution, distributed lock | VERIFIED | HF-009, worker |
+| HF-013 | Immediate pull | Authorized command with job status and no web-process work | VERIFIED | HF-012 |
+| HF-014 | Pull session history | Per-device counts, timings, status, warnings, errors | VERIFIED | HF-012 |
+| HF-015 | Historical pull | Authorized date-range ingestion where device capability allows | VERIFIED | HF-012 |
+| HF-016 | Device users | Paginated device registration inventory | VERIFIED | HF-010 |
+| HF-017 | Employee-device mapping | Link many device registrations to one employee | VERIFIED | HF-006, HF-016 |
+| HF-018 | Device comparison and sync | Preview unknown/missing users and execute approved actions | VERIFIED | HF-017 |
+| HF-019 | Bulk device enrollment | Validate and push approved identities to selected devices | VERIFIED | HF-018 |
+| HF-020 | Device-to-device migration | Dry-run and audited compatible user migration | VERIFIED | HF-018 |
+| HF-021 | Encrypted device archive | Backup and restore supported identity/biometric payloads | VERIFIED | HF-010, encryption |
+| HF-022 | Immutable punch ingestion | Append-only events, idempotency, UTC, source metadata | VERIFIED | HF-012, HF-017 |
+| HF-023 | Unlinked punch review | Retain and map evidence without loss | VERIFIED | HF-022 |
 | HF-024 | Attendance event explorer | Filter, paginate, inspect, Excel, PDF | PLANNED | HF-022, HF-002 |
 | HF-025 | Manual event entry | Additive correction with reason and approval metadata | PLANNED | HF-006, HF-022 |
 | HF-026 | Spreadsheet attendance import | Template, preview, row validation, result report | PLANNED | HF-025 |
@@ -79,8 +79,8 @@ Status values:
 ## Completion accounting
 
 - Total baseline capabilities: 66
-- Verified capabilities: 13
+- Verified capabilities: 28
 - Foundation-only capabilities: 4
-- Remaining planned/in-progress capabilities: 49
+- Remaining planned/in-progress capabilities: 34
 
 The matrix is updated in the same pull request that changes a feature's status. “Mostly works on my laptop” is not one of the status values, despite its historic popularity.
