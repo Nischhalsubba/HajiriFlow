@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import yaml
+
 APP_ROOT = Path(__file__).resolve().parents[1]
 REPOSITORY_ROOT = APP_ROOT.parent
 
@@ -10,6 +12,17 @@ def _root(relative: str) -> str:
 
 def _app(relative: str) -> str:
     return (APP_ROOT / relative).read_text(encoding="utf-8")
+
+
+def test_production_workflows_are_valid_yaml() -> None:
+    for relative in (
+        ".github/workflows/release-production.yml",
+        ".github/workflows/production-smoke.yml",
+    ):
+        parsed = yaml.safe_load(_root(relative))
+        assert isinstance(parsed, dict)
+        assert parsed.get("name")
+        assert "jobs" in parsed
 
 
 def test_codeowners_covers_governance_and_high_risk_paths() -> None:
