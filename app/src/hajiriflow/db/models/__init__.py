@@ -15,6 +15,11 @@ from hajiriflow.db.models.calendar_leave import (
     LeaveRequest,
     OrganizationCalendarSettings,
 )
+from hajiriflow.db.models.calendar_leave_baseline import (
+    FieldDutyDetail,
+    LeaveAllocationDetail,
+    LeavePolicyRule,
+)
 from hajiriflow.db.models.device import (
     Device,
     DeviceCredential,
@@ -68,10 +73,13 @@ __all__ = [
     "Employee",
     "EmployeeOrganizationAssignment",
     "EmployeeProfile",
+    "FieldDutyDetail",
     "FieldDutyRequest",
     "Holiday",
     "LeaveAllocation",
+    "LeaveAllocationDetail",
     "LeavePolicy",
+    "LeavePolicyRule",
     "LeaveRequest",
     "OrganizationCalendarSettings",
     "OrganizationNode",
