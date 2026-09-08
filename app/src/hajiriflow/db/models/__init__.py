@@ -47,6 +47,7 @@ from hajiriflow.db.models.workforce import (
     Shift,
     ShiftAssignment,
 )
+from hajiriflow.db.models.workforce_profile import CompanyReportProfile, EmployeeProfile
 
 __all__ = [
     "AttendanceCorrection",
@@ -58,6 +59,7 @@ __all__ = [
     "BiometricConsentEvent",
     "BiometricDeletionRequest",
     "CompanyProfile",
+    "CompanyReportProfile",
     "Device",
     "DeviceCredential",
     "DeviceEmployeeMapping",
@@ -65,6 +67,7 @@ __all__ = [
     "DeviceUser",
     "Employee",
     "EmployeeOrganizationAssignment",
+    "EmployeeProfile",
     "FieldDutyRequest",
     "Holiday",
     "LeaveAllocation",
