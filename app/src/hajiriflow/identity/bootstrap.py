@@ -16,6 +16,7 @@ PERMISSIONS = {
     "organization.manage": "Manage organization structure and company settings.",
     "employee.read": "View employees and effective workforce assignments.",
     "employee.manage": "Manage employee lifecycle and organization assignments.",
+    "employee.export": "Export employee data within authorized organization scope.",
     "shift.read": "View shift definitions and effective assignments.",
     "shift.manage": "Manage shift definitions and effective assignments.",
     "calendar.read": "View shared workday, holiday, and BS calendar decisions.",
@@ -72,6 +73,7 @@ ROLES = {
             "organization.manage",
             "employee.read",
             "employee.manage",
+            "employee.export",
             "shift.read",
             "shift.manage",
             "calendar.read",
@@ -104,6 +106,7 @@ ROLES = {
         "name": "Payroll administrator",
         "permissions": {
             "employee.read",
+            "employee.export",
             "calendar.read",
             "leave.read",
             "attendance.read",
