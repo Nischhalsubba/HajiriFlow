@@ -32,8 +32,8 @@ def upgrade() -> None:
         sa.Column("started_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("ended_at", sa.DateTime(timezone=True), nullable=True),
         sa.CheckConstraint(
-            "job_type IN ('immediate_pull', 'historical_pull', 'sync_users', "
-            "'push_user', 'migrate_user', 'archive_user', 'restore_user')",
+            "job_type IN ('diagnostics', 'immediate_pull', 'historical_pull', "
+            "'sync_users', 'push_user', 'migrate_user', 'archive_user', 'restore_user')",
             name="device_job_valid_type",
         ),
         sa.CheckConstraint(
@@ -44,9 +44,7 @@ def upgrade() -> None:
             "ended_at IS NULL OR started_at IS NULL OR ended_at >= started_at",
             name="device_job_valid_times",
         ),
-        sa.ForeignKeyConstraint(
-            ["device_id"], ["devices.id"], ondelete="CASCADE"
-        ),
+        sa.ForeignKeyConstraint(["device_id"], ["devices.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(
             ["organization_id"], ["company_profiles.id"], ondelete="CASCADE"
         ),
@@ -78,9 +76,7 @@ def upgrade() -> None:
         sa.Column("content_sha256", sa.String(length=64), nullable=False),
         sa.Column("created_by", sa.Uuid(), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["device_id"], ["devices.id"], ondelete="CASCADE"
-        ),
+        sa.ForeignKeyConstraint(["device_id"], ["devices.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(
             ["organization_id"], ["company_profiles.id"], ondelete="CASCADE"
         ),
@@ -106,9 +102,7 @@ def upgrade() -> None:
         sa.Column("message", sa.String(length=400), nullable=True),
         sa.Column("metadata", sa.JSON(), nullable=False),
         sa.Column("observed_at", sa.DateTime(timezone=True), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["device_id"], ["devices.id"], ondelete="CASCADE"
-        ),
+        sa.ForeignKeyConstraint(["device_id"], ["devices.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(
             ["organization_id"], ["company_profiles.id"], ondelete="CASCADE"
         ),
