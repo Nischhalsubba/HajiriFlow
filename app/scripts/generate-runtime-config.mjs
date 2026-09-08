@@ -17,7 +17,7 @@ function normalizeUpstream(value) {
   } catch {
     throw new Error("HAJIRIFLOW_API_BASE_URL must be an absolute http(s) URL.");
   }
-  if (!['http:', 'https:'].includes(url.protocol)) {
+  if (!["http:", "https:"].includes(url.protocol)) {
     throw new Error("HAJIRIFLOW_API_BASE_URL must use http or https.");
   }
   if (url.username || url.password || url.search || url.hash) {
@@ -34,7 +34,15 @@ if (context === "production" && !upstream) {
   throw new Error("Production builds require HAJIRIFLOW_API_BASE_URL.");
 }
 
-const config = Object.freeze({ apiBasePath: "/api" });
+const isProduction = context === "production";
+const config = Object.freeze({
+  apiBasePath: "/api",
+  environment: isProduction ? "production" : "development",
+  // Authentication is API-backed, but the legacy operational workspace still uses
+  // generated browser data. Production therefore fails closed until an authoritative
+  // API-backed operational provider replaces that legacy data source.
+  operationalDataMode: isProduction ? "integration-required" : "demo",
+});
 mkdirSync(dirname(configOutput), { recursive: true });
 writeFileSync(
   configOutput,
@@ -49,3 +57,8 @@ writeFileSync(redirectsOutput, redirectRules, "utf8");
 
 console.log(`Generated browser runtime configuration for ${context}.`);
 console.log(upstream ? "Configured same-origin /api proxy." : "No API proxy configured outside production.");
+console.log(
+  isProduction
+    ? "Operational data views are locked until an authoritative API-backed provider is enabled."
+    : "Demo operational data is enabled outside production.",
+);
