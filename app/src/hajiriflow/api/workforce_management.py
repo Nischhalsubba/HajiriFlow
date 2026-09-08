@@ -28,6 +28,17 @@ router = APIRouter(
     tags=["workforce-management"],
 )
 
+EmployeeStatus = Literal["active", "inactive", "terminated"]
+EmploymentType = Literal[
+    "permanent",
+    "contract",
+    "temporary",
+    "intern",
+    "consultant",
+]
+EmployeeSort = Literal["attendance_id", "employee_code", "name", "joined_on"]
+SortOrder = Literal["asc", "desc"]
+
 
 class CompanyReportProfileUpdate(BaseModel):
     address: str | None = Field(default=None, max_length=300)
@@ -60,9 +71,7 @@ class OrganizationNodeView(BaseModel):
 class EmployeeProfileUpdate(BaseModel):
     attendance_id: int | None = Field(default=None, ge=1, le=2_147_483_647)
     hr_employee_number: str | None = Field(default=None, max_length=80)
-    employment_type: Literal[
-        "permanent", "contract", "temporary", "intern", "consultant"
-    ] = "permanent"
+    employment_type: EmploymentType = "permanent"
     designation: str | None = Field(default=None, max_length=160)
     grade_level: str | None = Field(default=None, max_length=80)
     contact_email: str | None = Field(default=None, max_length=254)
@@ -98,25 +107,45 @@ def _strip_optional(value: str | None) -> str | None:
 def _company(session: Session, organization_id: UUID) -> CompanyProfile:
     item = session.get(CompanyProfile, organization_id)
     if not item:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="organization not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="organization not found",
+        )
     return item
 
 
-def _employee(session: Session, organization_id: UUID, employee_id: UUID) -> Employee:
+def _employee(
+    session: Session,
+    organization_id: UUID,
+    employee_id: UUID,
+) -> Employee:
     item = session.get(Employee, employee_id)
     if not item or item.organization_id != organization_id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="employee not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="employee not found",
+        )
     return item
 
 
-def _profile(session: Session, organization_id: UUID, employee_id: UUID) -> EmployeeProfile | None:
+def _profile(
+    session: Session,
+    organization_id: UUID,
+    employee_id: UUID,
+) -> EmployeeProfile | None:
     item = session.get(EmployeeProfile, employee_id)
     if item and item.organization_id != organization_id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="employee profile not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="employee profile not found",
+        )
     return item
 
 
-def _detail(employee: Employee, profile: EmployeeProfile | None) -> EmployeeDetailView:
+def _detail(
+    employee: Employee,
+    profile: EmployeeProfile | None,
+) -> EmployeeDetailView:
     return EmployeeDetailView(
         id=employee.id,
         organization_id=employee.organization_id,
@@ -211,9 +240,12 @@ def _employee_rows(
     }
     column = sort_map[sort_by]
     order = desc if sort_order == "desc" else asc
-    # NULL attendance IDs sort after real numeric IDs in both supported databases.
     if sort_by == "attendance_id":
-        query = query.order_by(column.is_(None), order(column), Employee.employee_code)
+        query = query.order_by(
+            column.is_(None),
+            order(column),
+            Employee.employee_code,
+        )
     else:
         query = query.order_by(order(column), Employee.employee_code)
     return list(session.execute(query.offset(offset).limit(limit)).all())
@@ -223,7 +255,8 @@ def _employee_rows(
 def get_company_report_profile(
     organization_id: UUID,
     _: Annotated[
-        RequestIdentity, Depends(require_organization_permission("organization.read"))
+        RequestIdentity,
+        Depends(require_organization_permission("organization.read")),
     ],
     session: Annotated[Session, Depends(get_db)],
 ) -> CompanyReportProfileView:
@@ -244,7 +277,8 @@ def update_company_report_profile(
     payload: CompanyReportProfileUpdate,
     _: Annotated[None, Depends(require_csrf)],
     identity: Annotated[
-        RequestIdentity, Depends(require_organization_permission("organization.manage"))
+        RequestIdentity,
+        Depends(require_organization_permission("organization.manage")),
     ],
     session: Annotated[Session, Depends(get_db)],
 ) -> CompanyReportProfileView:
@@ -292,27 +326,49 @@ def update_organization_node(
     payload: OrganizationNodeUpdate,
     _: Annotated[None, Depends(require_csrf)],
     identity: Annotated[
-        RequestIdentity, Depends(require_organization_permission("organization.manage"))
+        RequestIdentity,
+        Depends(require_organization_permission("organization.manage")),
     ],
     session: Annotated[Session, Depends(get_db)],
 ) -> OrganizationNodeView:
     item = session.get(OrganizationNode, node_id)
     if not item or item.organization_id != organization_id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="organization node not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="organization node not found",
+        )
     if payload.parent_id is not None:
         if payload.parent_id == item.id:
-            raise HTTPException(status_code=400, detail="organization node cannot be its own parent")
+            raise HTTPException(
+                status_code=400,
+                detail="organization node cannot be its own parent",
+            )
         parent = session.get(OrganizationNode, payload.parent_id)
         if not parent or parent.organization_id != organization_id:
-            raise HTTPException(status_code=400, detail="parent node must belong to the organization")
+            raise HTTPException(
+                status_code=400,
+                detail="parent node must belong to the organization",
+            )
         cursor = parent
         visited: set[UUID] = set()
         while cursor is not None and cursor.id not in visited:
             if cursor.id == item.id:
-                raise HTTPException(status_code=400, detail="organization hierarchy cannot contain cycles")
+                raise HTTPException(
+                    status_code=400,
+                    detail="organization hierarchy cannot contain cycles",
+                )
             visited.add(cursor.id)
-            cursor = session.get(OrganizationNode, cursor.parent_id) if cursor.parent_id else None
-    before = {"code": item.code, "name": item.name, "parent_id": str(item.parent_id) if item.parent_id else None, "status": item.status}
+            cursor = (
+                session.get(OrganizationNode, cursor.parent_id)
+                if cursor.parent_id
+                else None
+            )
+    before = {
+        "code": item.code,
+        "name": item.name,
+        "parent_id": str(item.parent_id) if item.parent_id else None,
+        "status": item.status,
+    }
     if payload.code is not None:
         item.code = payload.code.strip()
     if payload.name is not None:
@@ -321,7 +377,12 @@ def update_organization_node(
         item.parent_id = payload.parent_id
     if payload.status is not None:
         item.status = payload.status
-    after = {"code": item.code, "name": item.name, "parent_id": str(item.parent_id) if item.parent_id else None, "status": item.status}
+    after = {
+        "code": item.code,
+        "name": item.name,
+        "parent_id": str(item.parent_id) if item.parent_id else None,
+        "status": item.status,
+    }
     _audit(
         session,
         identity=identity,
@@ -336,20 +397,26 @@ def update_organization_node(
         session.commit()
     except IntegrityError as exc:
         session.rollback()
-        raise HTTPException(status_code=409, detail="organization node code already exists") from exc
+        raise HTTPException(
+            status_code=409,
+            detail="organization node code already exists",
+        ) from exc
     return _node_view(item)
 
 
 @router.get("/employees", response_model=list[EmployeeDetailView])
 def list_employee_details(
     organization_id: UUID,
-    _: Annotated[RequestIdentity, Depends(require_organization_permission("employee.read"))],
+    _: Annotated[
+        RequestIdentity,
+        Depends(require_organization_permission("employee.read")),
+    ],
     session: Annotated[Session, Depends(get_db)],
     q: str | None = Query(default=None, max_length=120),
-    status_filter: Literal["active", "inactive", "terminated"] | None = Query(default=None, alias="status"),
-    employment_type: Literal["permanent", "contract", "temporary", "intern", "consultant"] | None = None,
-    sort_by: Literal["attendance_id", "employee_code", "name", "joined_on"] = "employee_code",
-    sort_order: Literal["asc", "desc"] = "asc",
+    status_filter: EmployeeStatus | None = Query(default=None, alias="status"),
+    employment_type: EmploymentType | None = None,
+    sort_by: EmployeeSort = "employee_code",
+    sort_order: SortOrder = "asc",
     limit: int = Query(default=100, ge=1, le=500),
     offset: int = Query(default=0, ge=0),
 ) -> list[EmployeeDetailView]:
@@ -372,7 +439,10 @@ def list_employee_details(
 def get_employee_detail(
     organization_id: UUID,
     employee_id: UUID,
-    _: Annotated[RequestIdentity, Depends(require_organization_permission("employee.read"))],
+    _: Annotated[
+        RequestIdentity,
+        Depends(require_organization_permission("employee.read")),
+    ],
     session: Annotated[Session, Depends(get_db)],
 ) -> EmployeeDetailView:
     employee = _employee(session, organization_id, employee_id)
@@ -386,7 +456,8 @@ def update_employee_profile(
     payload: EmployeeProfileUpdate,
     _: Annotated[None, Depends(require_csrf)],
     identity: Annotated[
-        RequestIdentity, Depends(require_organization_permission("employee.manage"))
+        RequestIdentity,
+        Depends(require_organization_permission("employee.manage")),
     ],
     session: Annotated[Session, Depends(get_db)],
 ) -> EmployeeDetailView:
@@ -394,7 +465,10 @@ def update_employee_profile(
     item = _profile(session, organization_id, employee_id)
     before = None
     if item is None:
-        item = EmployeeProfile(employee_id=employee.id, organization_id=organization_id)
+        item = EmployeeProfile(
+            employee_id=employee.id,
+            organization_id=organization_id,
+        )
         session.add(item)
     else:
         before = {
@@ -480,12 +554,18 @@ def _export_values(item: EmployeeDetailView) -> list[object]:
 @router.get("/employees/export/file")
 def export_employees(
     organization_id: UUID,
-    _: Annotated[RequestIdentity, Depends(require_organization_permission("employee.export"))],
+    _: Annotated[
+        RequestIdentity,
+        Depends(require_organization_permission("employee.export")),
+    ],
     session: Annotated[Session, Depends(get_db)],
-    export_format: Literal["csv", "xlsx"] = Query(default="csv", alias="format"),
+    export_format: Literal["csv", "xlsx"] = Query(
+        default="csv",
+        alias="format",
+    ),
     q: str | None = Query(default=None, max_length=120),
-    status_filter: Literal["active", "inactive", "terminated"] | None = Query(default=None, alias="status"),
-    employment_type: Literal["permanent", "contract", "temporary", "intern", "consultant"] | None = None,
+    status_filter: EmployeeStatus | None = Query(default=None, alias="status"),
+    employment_type: EmploymentType | None = None,
 ) -> StreamingResponse:
     _company(session, organization_id)
     rows = _employee_rows(
@@ -518,7 +598,9 @@ def export_employees(
         data = io.BytesIO()
         workbook.save(data)
         data.seek(0)
-        media_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        media_type = (
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
         filename = "employees.xlsx"
     return StreamingResponse(
         data,
