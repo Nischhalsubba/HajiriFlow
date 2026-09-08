@@ -7,6 +7,11 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from hajiriflow.core.config import get_settings
+from hajiriflow.identity.audit_contract import enforce_business_audit_contract
+
+# Keep an explicit reference so the side-effect listener registration is both visible
+# to reviewers and protected from being mistaken for an unused import.
+_AUDIT_CONTRACT = enforce_business_audit_contract
 
 
 @lru_cache

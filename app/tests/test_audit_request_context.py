@@ -13,10 +13,13 @@ def test_audit_events_inherit_bound_request_id(database) -> None:
             object_type="attendance_record",
             object_id="attendance-1",
             after_data={"status": "approved"},
+            context_data={"organization_id": "org-1"},
         )
         session.add(event)
         session.flush()
         assert event.request_id == "request-audit-123"
+        assert event.context_data["organization_id"] == "org-1"
+        assert event.context_data["source"] == "attendance"
     finally:
         reset_request_id(token)
         session.close()
