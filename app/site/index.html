@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="/assets/production-v7.css?v=20260803-7">
   <link rel="stylesheet" href="/assets/auth.css?v=20260902-1">
   <link rel="stylesheet" href="/assets/account-management.css?v=20260902-1">
+  <link rel="stylesheet" href="/assets/accessibility-v8.css?v=20260908-1">
   <script src="/assets/runtime-config.js?v=20260902-1" defer></script>
   <script src="/assets/identity-client.js?v=20260902-1" defer></script>
   <script src="/assets/identity-gate.js?v=20260902-1" defer></script>
@@ -25,6 +26,7 @@
   <script src="/assets/production-v7.js?v=20260803-7" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/motion@12.42.1/dist/motion.js" defer></script>
   <script src="/assets/motion-v5.js?v=20260803-7" defer></script>
+  <script src="/assets/accessibility-v8.js?v=20260908-1" defer></script>
 </head>
 <body class="app-is-loading identity-locked">
   <main class="identity-gate" id="identity-gate" aria-label="HajiriFlow secure sign in">
@@ -141,9 +143,10 @@
 
   <div class="command-layer" id="command-layer" hidden>
     <div class="command-panel" role="dialog" aria-modal="true" aria-labelledby="command-title">
+      <h2 class="visually-hidden" id="command-title">Search and commands</h2>
       <div class="command-input-row">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
-        <input id="command-input" type="search" autocomplete="off" placeholder="Search employees, pages, or actions">
+        <input id="command-input" type="search" autocomplete="off" placeholder="Search employees, pages, or actions" aria-label="Search employees, pages, or actions">
         <kbd>Esc</kbd>
       </div>
       <div class="command-results" id="command-results"></div>
