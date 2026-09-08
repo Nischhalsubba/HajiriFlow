@@ -134,5 +134,7 @@ class DeviceDiagnosticSnapshot(Base):
         DateTime(timezone=True), nullable=True
     )
     message: Mapped[str | None] = mapped_column(String(400), nullable=True)
-    metadata: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    diagnostic_data: Mapped[dict] = mapped_column(
+        "metadata", JSON, nullable=False, default=dict
+    )
     observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
