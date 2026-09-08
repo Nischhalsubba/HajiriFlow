@@ -1,7 +1,7 @@
 import base64
 import hashlib
 from collections.abc import Callable
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 from sqlalchemy import select
@@ -17,7 +17,7 @@ from hajiriflow.db.models.device_baseline import (
 from hajiriflow.db.models.identity import AuditEvent
 from hajiriflow.device_platform.adapters import DeviceAdapter, DeviceUserRecord
 from hajiriflow.device_platform.crypto import DeviceSecretCipher
-from hajiriflow.device_platform.pull import DevicePullCoordinator
+from hajiriflow.device_platform.pull import DevicePullCoordinator, device_pull_lock
 from hajiriflow.device_platform.service import DevicePlatformService
 
 AdapterResolver = Callable[[Device], DeviceAdapter]
@@ -129,7 +129,14 @@ class DeviceJobProcessor:
             return self._fail(job, "device_not_found", "Registered device is unavailable.")
         try:
             adapter = self.adapter_resolver(device)
-            result = self._execute(job, device, adapter)
+            with device_pull_lock(self.session, device.id) as locked:
+                if not locked:
+                    return self._fail(
+                        job,
+                        "device_locked",
+                        "Another worker is already operating on this device.",
+                    )
+                result = self._execute(job, device, adapter)
             job.result = result
             job.status = "succeeded"
             job.error_code = None
@@ -221,7 +228,7 @@ class DeviceJobProcessor:
             end_at = _parse_datetime(job.payload.get("end_at"), "end_at")
             if end_at < start_at:
                 raise ValueError("historical pull end cannot be before start")
-            if end_at - start_at > __import__("datetime").timedelta(days=366):
+            if end_at - start_at > timedelta(days=366):
                 raise ValueError("historical pull range cannot exceed 366 days")
             pull_method = getattr(adapter, "pull_punches")
             batch = pull_method(cursor=None, start_at=start_at, end_at=end_at)
@@ -297,25 +304,30 @@ class DeviceJobProcessor:
             )
             if not source_user:
                 raise LookupError("source device user not found")
-            target_adapter = self.adapter_resolver(target)
-            target_users = {
-                item.external_user_id: item for item in target_adapter.list_users()
-            }
-            if external_user_id in target_users:
-                raise ValueError("target device already contains this user; migration will not overwrite")
-            push_user = getattr(target_adapter, "push_user", None)
-            if push_user is None or not target_adapter.capabilities().push_users:
-                raise ValueError("target device does not support user enrollment")
-            migrated = push_user(
-                DeviceUserRecord(
-                    external_user_id=source_user.external_user_id,
-                    display_name=source_user.display_name,
-                    privilege=source_user.privilege,
-                    active=source_user.active,
-                ),
-                overwrite=False,
-            )
-            self.platform.sync_device_users(device=target, users=(migrated,))
+            with device_pull_lock(self.session, target.id) as target_locked:
+                if not target_locked:
+                    raise RuntimeError("target device is busy")
+                target_adapter = self.adapter_resolver(target)
+                target_users = {
+                    item.external_user_id: item for item in target_adapter.list_users()
+                }
+                if external_user_id in target_users:
+                    raise ValueError(
+                        "target device already contains this user; migration will not overwrite"
+                    )
+                push_user = getattr(target_adapter, "push_user", None)
+                if push_user is None or not target_adapter.capabilities().push_users:
+                    raise ValueError("target device does not support user enrollment")
+                migrated = push_user(
+                    DeviceUserRecord(
+                        external_user_id=source_user.external_user_id,
+                        display_name=source_user.display_name,
+                        privilege=source_user.privilege,
+                        active=source_user.active,
+                    ),
+                    overwrite=False,
+                )
+                self.platform.sync_device_users(device=target, users=(migrated,))
             return {
                 "source_device_id": str(device.id),
                 "target_device_id": str(target.id),
