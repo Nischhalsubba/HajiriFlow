@@ -36,14 +36,14 @@ Status values:
 | HF-025 | Manual event entry | Additive correction with reason and approval metadata | PLANNED | HF-006, HF-022 |
 | HF-026 | Spreadsheet attendance import | Template, preview, row validation, result report | PLANNED | HF-025 |
 | HF-027 | Attendance day remarks | Non-destructive notes with audit | PLANNED | HF-006 |
-| HF-028 | AD/BS date services | Bidirectional conversion and month boundaries | PLANNED | Foundation |
-| HF-029 | Holiday types and calendar | Configurable categories, monthly calendar, working-day count | PLANNED | HF-028, HF-005 |
-| HF-030 | Leave-type configuration | Entitlement, caps, carry, paid, color, half-day, eligibility | PLANNED | HF-005 |
-| HF-031 | Leave balances | Opening, earned, carried, used, pending, available by BS year | PLANNED | HF-030, HF-006 |
-| HF-032 | Leave allocation | Previewed, repeat-safe annual allocation | PLANNED | HF-031 |
-| HF-033 | Leave application workflow | Apply, approve, reject, cancel, working-day calculation | PLANNED | HF-029, HF-031, HF-002 |
-| HF-034 | Employee leave self-service | Own balances, requests, and statuses only | PLANNED | HF-033, HF-001 |
-| HF-035 | Field duty / kaaj | Paid/unpaid records, approval, filters, exports | PLANNED | HF-006, HF-029 |
+| HF-028 | AD/BS date services | Bidirectional conversion and month boundaries | VERIFIED | Foundation |
+| HF-029 | Holiday types and calendar | Configurable categories, monthly calendar, working-day count | VERIFIED | HF-028, HF-005 |
+| HF-030 | Leave-type configuration | Entitlement, caps, carry, paid, color, half-day, eligibility | VERIFIED | HF-005 |
+| HF-031 | Leave balances | Opening, earned, carried, used, pending, available by BS year | VERIFIED | HF-030, HF-006 |
+| HF-032 | Leave allocation | Previewed, repeat-safe annual allocation | VERIFIED | HF-031 |
+| HF-033 | Leave application workflow | Apply, approve, reject, cancel, working-day calculation | VERIFIED | HF-029, HF-031, HF-002 |
+| HF-034 | Employee leave self-service | Own balances, requests, and statuses only | VERIFIED | HF-033, HF-001 |
+| HF-035 | Field duty / kaaj | Paid/unpaid records, approval, filters, exports | VERIFIED | HF-006, HF-029 |
 | HF-036 | Attendance calculation engine | Shift-aware deterministic day result with explanation trace | PLANNED | HF-008, HF-022, HF-029, HF-033, HF-035 |
 | HF-037 | Duplicate-event policy | Configurable near-event grouping without raw deletion | PLANNED | HF-036 |
 | HF-038 | Overnight attendance | Correct workday resolution across midnight | PLANNED | HF-036 |
@@ -79,8 +79,8 @@ Status values:
 ## Completion accounting
 
 - Total baseline capabilities: 66
-- Verified capabilities: 5
+- Verified capabilities: 13
 - Foundation-only capabilities: 4
-- Remaining planned/in-progress capabilities: 57
+- Remaining planned/in-progress capabilities: 49
 
 The matrix is updated in the same pull request that changes a feature's status. “Mostly works on my laptop” is not one of the status values, despite its historic popularity.
