@@ -15,7 +15,7 @@ The gateway contract exposes:
 - `GET /v1/users/{external_user_id}/archive` — optional archive export when biometric templates are supported
 - `POST /v1/users/archive` — optional non-overwriting archive restore
 
-Gateway responses are bounded before parsing. Punch timestamps must include an explicit timezone. Ordinary gateway metadata accepts only scalar operational values; credentials/templates are not copied into logs, diagnostics, or job results.
+Gateway responses are bounded before parsing. Punch timestamps must include an explicit timezone. Ordinary gateway metadata accepts only scalar operational values; credentials/templates are not copied into logs, diagnostics, or job results. Persisted diagnostic JSON is limited to that sanitized operational metadata and never contains device credentials or biometric template material.
 
 Production gateway endpoints must use HTTPS. HTTP is accepted only in development/test environments for isolated fixtures.
 
