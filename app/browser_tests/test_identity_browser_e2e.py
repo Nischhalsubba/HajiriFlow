@@ -68,7 +68,9 @@ def live_server(seeded_identity: None) -> Iterator[str]:
     try:
         while time.monotonic() < deadline:
             if process.poll() is not None:
-                raise RuntimeError(f"browser test server exited with code {process.returncode}")
+                raise RuntimeError(
+                    f"browser test server exited with code {process.returncode}"
+                )
             try:
                 with urlopen(f"{BASE_URL}/ready", timeout=1) as response:  # noqa: S310
                     if response.status == 200:
@@ -98,6 +100,30 @@ def expect_unlocked(page: Page, display_name: str) -> None:
     expect(page.locator("#identity-gate")).to_be_hidden()
     expect(page.locator("#app-shell")).not_to_have_attribute("inert", "")
     expect(page.locator("[data-current-user-name]").first).to_have_text(display_name)
+
+
+def expect_accessible_workspace_keyboard_behavior(page: Page) -> None:
+    search_trigger = page.locator('[data-action="open-command-menu"]')
+    search_trigger.focus()
+    expect(search_trigger).to_be_focused()
+
+    page.keyboard.press("Control+K")
+    expect(page.locator("#command-layer")).to_be_visible()
+    expect(page.locator("#command-input")).to_be_focused()
+    expect(page.get_by_role("dialog", name="Search and commands")).to_be_visible()
+
+    page.keyboard.press("Escape")
+    expect(page.locator("#command-layer")).to_be_hidden()
+    expect(search_trigger).to_be_focused()
+
+    page.goto(f"{BASE_URL}/#attendance")
+    expect_unlocked(page, "Browser Admin")
+    table_region = page.locator(".table-scroll").first
+    expect(table_region).to_have_attribute("role", "region")
+    expect(table_region).to_have_attribute("tabindex", "0")
+    expect(table_region).to_have_attribute("aria-label", "Attendance table")
+    table_region.focus()
+    expect(table_region).to_be_focused()
 
 
 def create_employee_from_account_ui(page: Page) -> None:
@@ -135,6 +161,7 @@ def test_real_browser_identity_and_authorization_flow(live_server: str) -> None:
 
             sign_in(admin_page, ADMIN_USERNAME, ADMIN_NEW_PASSWORD)
             expect_unlocked(admin_page, "Browser Admin")
+            expect_accessible_workspace_keyboard_behavior(admin_page)
 
             admin_page.reload()
             expect_unlocked(admin_page, "Browser Admin")
@@ -163,7 +190,9 @@ def test_real_browser_identity_and_authorization_flow(live_server: str) -> None:
             employee_page = employee_context.new_page()
             employee_page.goto(f"{BASE_URL}/#accounts")
             sign_in(employee_page, EMPLOYEE_USERNAME, EMPLOYEE_PASSWORD)
-            expect(employee_page.get_by_role("heading", name="Access restricted")).to_be_visible()
+            expect(
+                employee_page.get_by_role("heading", name="Access restricted")
+            ).to_be_visible()
 
             employee_row = admin_page.locator(
                 "[data-account-user]", has_text="Browser Employee"
