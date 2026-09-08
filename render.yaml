@@ -1,0 +1,51 @@
+# HajiriFlow production backend blueprint.
+#
+# This intentionally uses Render's smallest paid, non-expiring web and Postgres
+# plans. Applying the Blueprint creates billable infrastructure; committing this
+# file by itself does not create resources or incur charges.
+#
+# The background device worker is intentionally omitted while
+# hajiriflow.worker.resolve_adapter() has no concrete vendor adapter. Add a
+# dedicated worker service when reviewed hardware support is introduced.
+
+services:
+  - type: web
+    name: hajiriflow-api
+    runtime: docker
+    plan: 0.5c-512mb
+    region: singapore
+    branch: main
+    dockerfilePath: ./app/Dockerfile
+    dockerContext: ./app
+    dockerCommand: /bin/sh -c 'exec uvicorn hajiriflow.main:app --host 0.0.0.0 --port "${PORT:-10000}"'
+    preDeployCommand: alembic upgrade head
+    healthCheckPath: /ready
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: HAJIRIFLOW_DATABASE_URL
+        fromDatabase:
+          name: hajiriflow-postgres
+          property: connectionString
+      - key: HAJIRIFLOW_ENVIRONMENT
+        value: production
+      - key: HAJIRIFLOW_SESSION_SECRET
+        generateValue: true
+      - key: HAJIRIFLOW_TIMEZONE
+        value: Asia/Kathmandu
+      - key: HAJIRIFLOW_LOG_LEVEL
+        value: INFO
+      - key: HAJIRIFLOW_COOKIE_SECURE
+        value: "true"
+      - key: HAJIRIFLOW_COOKIE_SAME_SITE
+        value: lax
+      - key: HAJIRIFLOW_CORS_ORIGINS
+        value: https://hajiriflow.netlify.app
+
+databases:
+  - name: hajiriflow-postgres
+    plan: 0.1c-256mb
+    region: singapore
+    postgresMajorVersion: "17"
+    databaseName: hajiriflow
+    user: hajiriflow
+    ipAllowList: []
