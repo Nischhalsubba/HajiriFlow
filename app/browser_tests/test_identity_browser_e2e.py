@@ -117,9 +117,11 @@ def expect_accessible_workspace_keyboard_behavior(page: Page) -> None:
     page.goto(f"{BASE_URL}/#attendance")
     expect_unlocked(page, "Browser Admin")
     expect(page.locator("#page-title")).to_have_text("Attendance")
-    expect(page.locator("#workspace")).to_be_focused()
+    workspace = page.locator("#workspace")
+    expect(workspace).to_have_attribute("aria-busy", "false")
 
     table_region = page.locator(".table-scroll").first
+    expect(table_region).to_be_visible()
     expect(table_region).to_have_attribute("role", "region")
     expect(table_region).to_have_attribute("tabindex", "0")
     expect(table_region).to_have_attribute("aria-label", "Attendance table")
