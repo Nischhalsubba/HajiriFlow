@@ -25,11 +25,14 @@ class DeviceIdentityAction(Base):
     __tablename__ = "device_identity_actions"
     __table_args__ = (
         CheckConstraint(
-            "action_type IN ('push_users', 'migrate_users', 'archive_export', 'archive_restore')",
+            "action_type IN "
+            "('push_users', 'migrate_users', 'archive_export', 'archive_restore')",
             name="device_identity_action_valid_type",
         ),
         CheckConstraint(
-            "status IN ('preview', 'approved', 'running', 'succeeded', 'partial', 'failed', 'cancelled')",
+            "status IN "
+            "('preview', 'approved', 'running', 'succeeded', "
+            "'partial', 'failed', 'cancelled')",
             name="device_identity_action_valid_status",
         ),
         Index("ix_device_identity_actions_org_created", "organization_id", "created_at"),
@@ -75,15 +78,24 @@ class DeviceIdentityAction(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utc_now
     )
-    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    approved_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    started_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    ended_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
 
 class DeviceArchive(Base):
     __tablename__ = "device_archives"
     __table_args__ = (
-        CheckConstraint("status IN ('ready', 'restored', 'failed')", name="device_archive_valid_status"),
+        CheckConstraint(
+            "status IN ('ready', 'restored', 'failed')",
+            name="device_archive_valid_status",
+        ),
         Index("ix_device_archives_org_created", "organization_id", "created_at"),
     )
 
