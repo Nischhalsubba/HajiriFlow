@@ -58,7 +58,7 @@ def _shift(session, company: CompanyProfile) -> Shift:
         ends_at=datetime.strptime("06:00", "%H:%M").time(),
         break_minutes=60,
         grace_minutes=10,
-        status="active",
+        active=True,
     )
     session.add(shift)
     session.flush()
