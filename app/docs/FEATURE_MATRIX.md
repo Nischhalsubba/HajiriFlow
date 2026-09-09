@@ -33,9 +33,9 @@ Status values:
 | HF-022 | Immutable punch ingestion | Append-only events, idempotency, UTC, source metadata | VERIFIED | HF-012, HF-017 |
 | HF-023 | Unlinked punch review | Retain and map evidence without loss | VERIFIED | HF-022 |
 | HF-024 | Attendance event explorer | Filter, paginate, inspect, Excel, PDF | PLANNED | HF-022, HF-002 |
-| HF-025 | Manual event entry | Additive correction with reason and approval metadata | PLANNED | HF-006, HF-022 |
-| HF-026 | Spreadsheet attendance import | Template, preview, row validation, result report | PLANNED | HF-025 |
-| HF-027 | Attendance day remarks | Non-destructive notes with audit | PLANNED | HF-006 |
+| HF-025 | Manual event entry | Additive correction with reason and approval metadata | VERIFIED | HF-006, HF-022 |
+| HF-026 | Spreadsheet attendance import | Template, preview, row validation, result report | VERIFIED | HF-025 |
+| HF-027 | Attendance day remarks | Non-destructive notes with audit | VERIFIED | HF-006 |
 | HF-028 | AD/BS date services | Bidirectional conversion and month boundaries | VERIFIED | Foundation |
 | HF-029 | Holiday types and calendar | Configurable categories, monthly calendar, working-day count | VERIFIED | HF-028, HF-005 |
 | HF-030 | Leave-type configuration | Entitlement, caps, carry, paid, color, half-day, eligibility | VERIFIED | HF-005 |
@@ -44,9 +44,9 @@ Status values:
 | HF-033 | Leave application workflow | Apply, approve, reject, cancel, working-day calculation | VERIFIED | HF-029, HF-031, HF-002 |
 | HF-034 | Employee leave self-service | Own balances, requests, and statuses only | VERIFIED | HF-033, HF-001 |
 | HF-035 | Field duty / kaaj | Paid/unpaid records, approval, filters, exports | VERIFIED | HF-006, HF-029 |
-| HF-036 | Attendance calculation engine | Shift-aware deterministic day result with explanation trace | PLANNED | HF-008, HF-022, HF-029, HF-033, HF-035 |
-| HF-037 | Duplicate-event policy | Configurable near-event grouping without raw deletion | PLANNED | HF-036 |
-| HF-038 | Overnight attendance | Correct workday resolution across midnight | PLANNED | HF-036 |
+| HF-036 | Attendance calculation engine | Shift-aware deterministic day result with explanation trace | VERIFIED | HF-008, HF-022, HF-029, HF-033, HF-035 |
+| HF-037 | Duplicate-event policy | Configurable near-event grouping without raw deletion | VERIFIED | HF-036 |
+| HF-038 | Overnight attendance | Correct workday resolution across midnight | VERIFIED | HF-036 |
 | HF-039 | Daily status report | Present, absent, leave, field duty, drilldown, exports | PLANNED | HF-036 |
 | HF-040 | Daily absence report | Expected workers minus valid statuses, non-workday handling | PLANNED | HF-036 |
 | HF-041 | Department coverage | Summary, percentages, status drilldowns, exports | PLANNED | HF-036, HF-005 |
@@ -79,8 +79,8 @@ Status values:
 ## Completion accounting
 
 - Total baseline capabilities: 66
-- Verified capabilities: 28
+- Verified capabilities: 34
 - Foundation-only capabilities: 4
-- Remaining planned/in-progress capabilities: 34
+- Remaining planned/in-progress capabilities: 28
 
 The matrix is updated in the same pull request that changes a feature's status. “Mostly works on my laptop” is not one of the status values, despite its historic popularity.
