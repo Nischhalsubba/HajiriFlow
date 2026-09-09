@@ -32,7 +32,7 @@ Status values:
 | HF-021 | Encrypted device archive | Backup and restore supported identity/biometric payloads | VERIFIED | HF-010, encryption |
 | HF-022 | Immutable punch ingestion | Append-only events, idempotency, UTC, source metadata | VERIFIED | HF-012, HF-017 |
 | HF-023 | Unlinked punch review | Retain and map evidence without loss | VERIFIED | HF-022 |
-| HF-024 | Attendance event explorer | Filter, paginate, inspect, Excel, PDF | PLANNED | HF-022, HF-002 |
+| HF-024 | Attendance event explorer | Filter, paginate, inspect, Excel, PDF | VERIFIED | HF-022, HF-002 |
 | HF-025 | Manual event entry | Additive correction with reason and approval metadata | VERIFIED | HF-006, HF-022 |
 | HF-026 | Spreadsheet attendance import | Template, preview, row validation, result report | VERIFIED | HF-025 |
 | HF-027 | Attendance day remarks | Non-destructive notes with audit | VERIFIED | HF-006 |
@@ -47,14 +47,14 @@ Status values:
 | HF-036 | Attendance calculation engine | Shift-aware deterministic day result with explanation trace | VERIFIED | HF-008, HF-022, HF-029, HF-033, HF-035 |
 | HF-037 | Duplicate-event policy | Configurable near-event grouping without raw deletion | VERIFIED | HF-036 |
 | HF-038 | Overnight attendance | Correct workday resolution across midnight | VERIFIED | HF-036 |
-| HF-039 | Daily status report | Present, absent, leave, field duty, drilldown, exports | PLANNED | HF-036 |
-| HF-040 | Daily absence report | Expected workers minus valid statuses, non-workday handling | PLANNED | HF-036 |
-| HF-041 | Department coverage | Summary, percentages, status drilldowns, exports | PLANNED | HF-036, HF-005 |
-| HF-042 | Employee monthly detail | Daily plan/evidence/result table and print one/all | PLANNED | HF-036 |
-| HF-043 | Monthly workforce summary | Per-employee totals and leave breakdown | PLANNED | HF-036 |
-| HF-044 | Hajiri register | BS employee-day matrix, codes, totals, A3/Excel | PLANNED | HF-036, HF-028 |
-| HF-045 | Attendance-to-salary worksheet | Attendance totals with approved compensation references | PLANNED | HF-036, HF-050 |
-| HF-046 | Employee attendance self-service | Own daily and monthly attendance with punch drilldown | PLANNED | HF-036, HF-001 |
+| HF-039 | Daily status report | Present, absent, leave, field duty, drilldown, exports | VERIFIED | HF-036 |
+| HF-040 | Daily absence report | Expected workers minus valid statuses, non-workday handling | VERIFIED | HF-036 |
+| HF-041 | Department coverage | Summary, percentages, status drilldowns, exports | VERIFIED | HF-036, HF-005 |
+| HF-042 | Employee monthly detail | Daily plan/evidence/result table and print one/all | VERIFIED | HF-036 |
+| HF-043 | Monthly workforce summary | Per-employee totals and leave breakdown | VERIFIED | HF-036 |
+| HF-044 | Hajiri register | BS employee-day matrix, codes, totals, A3/Excel | VERIFIED | HF-036, HF-028 |
+| HF-045 | Attendance-to-salary worksheet | Attendance totals with approved compensation references | VERIFIED | HF-036, HF-050 |
+| HF-046 | Employee attendance self-service | Own daily and monthly attendance with punch drilldown | VERIFIED | HF-036, HF-001 |
 | HF-047 | Fiscal-year lifecycle | BS/AD dates and upcoming/active/closed/locked states | PLANNED | HF-028, HF-002 |
 | HF-048 | Earning-head catalog | Fixed/percentage and payment frequency policy | PLANNED | HF-047 |
 | HF-049 | Deduction catalog | Fixed/percentage, pretax, cap, enrollment | PLANNED | HF-047 |
@@ -79,8 +79,8 @@ Status values:
 ## Completion accounting
 
 - Total baseline capabilities: 66
-- Verified capabilities: 34
+- Verified capabilities: 43
 - Foundation-only capabilities: 4
-- Remaining planned/in-progress capabilities: 28
+- Remaining planned/in-progress capabilities: 19
 
 The matrix is updated in the same pull request that changes a feature's status. “Mostly works on my laptop” is not one of the status values, despite its historic popularity.
