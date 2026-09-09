@@ -55,19 +55,19 @@ Status values:
 | HF-044 | Hajiri register | BS employee-day matrix, codes, totals, A3/Excel | VERIFIED | HF-036, HF-028 |
 | HF-045 | Attendance-to-salary worksheet | Attendance totals with approved compensation references | VERIFIED | HF-036, HF-050 |
 | HF-046 | Employee attendance self-service | Own daily and monthly attendance with punch drilldown | VERIFIED | HF-036, HF-001 |
-| HF-047 | Fiscal-year lifecycle | BS/AD dates and upcoming/active/closed/locked states | PLANNED | HF-028, HF-002 |
-| HF-048 | Earning-head catalog | Fixed/percentage and payment frequency policy | PLANNED | HF-047 |
-| HF-049 | Deduction catalog | Fixed/percentage, pretax, cap, enrollment | PLANNED | HF-047 |
-| HF-050 | Employee compensation setup | Effective-dated heads, deductions, tax profile, OT policy | PLANNED | HF-006, HF-048, HF-049 |
-| HF-051 | Holiday OT rules | Employee and org-scoped premium policy | PLANNED | HF-029, HF-050 |
-| HF-052 | Tax slab sets | Fiscal-year versioning, taxpayer categories, confirmation | PLANNED | HF-047 |
-| HF-053 | Payroll attendance review | Reconcile approved attendance before generation | PLANNED | HF-036, HF-047 |
-| HF-054 | Payroll generation | Persist immutable identity, attendance, policy, and money snapshots | PLANNED | HF-050, HF-052, HF-053 |
-| HF-055 | Payroll lifecycle | Preview, approve, post, reverse, close, lock | PLANNED | HF-054, HF-002 |
-| HF-056 | Payslips | Individual and batch print/PDF with transparent calculation | PLANNED | HF-054 |
-| HF-057 | Annual payroll summary | Employee annual totals and Excel export | PLANNED | HF-054 |
-| HF-058 | Tax preview and projection | Explain projected tax and reconciliation | PLANNED | HF-052, HF-054 |
-| HF-059 | Employee payroll self-service | Own payslips and annual totals only | PLANNED | HF-056, HF-001 |
+| HF-047 | Fiscal-year lifecycle | BS/AD dates and upcoming/active/closed/locked states | VERIFIED | HF-028, HF-002 |
+| HF-048 | Earning-head catalog | Fixed/percentage and payment frequency policy | VERIFIED | HF-047 |
+| HF-049 | Deduction catalog | Fixed/percentage, pretax, cap, enrollment | VERIFIED | HF-047 |
+| HF-050 | Employee compensation setup | Effective-dated heads, deductions, tax profile, OT policy | VERIFIED | HF-006, HF-048, HF-049 |
+| HF-051 | Holiday OT rules | Employee and org-scoped premium policy | VERIFIED | HF-029, HF-050 |
+| HF-052 | Tax slab sets | Fiscal-year versioning, taxpayer categories, confirmation | VERIFIED | HF-047 |
+| HF-053 | Payroll attendance review | Reconcile approved attendance before generation | VERIFIED | HF-036, HF-047 |
+| HF-054 | Payroll generation | Persist immutable identity, attendance, policy, and money snapshots | VERIFIED | HF-050, HF-052, HF-053 |
+| HF-055 | Payroll lifecycle | Preview, approve, post, reverse, close, lock | VERIFIED | HF-054, HF-002 |
+| HF-056 | Payslips | Individual and batch print/PDF with transparent calculation | VERIFIED | HF-054 |
+| HF-057 | Annual payroll summary | Employee annual totals and Excel export | VERIFIED | HF-054 |
+| HF-058 | Tax preview and projection | Explain projected tax and reconciliation | VERIFIED | HF-052, HF-054 |
+| HF-059 | Employee payroll self-service | Own payslips and annual totals only | VERIFIED | HF-056, HF-001 |
 | HF-060 | Administrative audit | Append-only, filterable, redacted before/after events | PLANNED | Database, HF-001 |
 | HF-061 | Operational dashboard | Device, pull, attendance, exception, and job indicators | PLANNED | HF-014, HF-036 |
 | HF-062 | Structured logs and metrics | Request/job correlation, alerts, no sensitive payloads | FOUNDATION | Foundation |
@@ -79,8 +79,10 @@ Status values:
 ## Completion accounting
 
 - Total baseline capabilities: 66
-- Verified capabilities: 43
-- Foundation-only capabilities: 4
-- Remaining planned/in-progress capabilities: 19
+- Verified capabilities: 56
+- Foundation-only capabilities: 3
+- Remaining planned/in-progress capabilities: 7
+
+The earlier 43/4/19 accounting was inconsistent with the row statuses; this count is derived from all 66 capability rows.
 
 The matrix is updated in the same pull request that changes a feature's status. “Mostly works on my laptop” is not one of the status values, despite its historic popularity.
