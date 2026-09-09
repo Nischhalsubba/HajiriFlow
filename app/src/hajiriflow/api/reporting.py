@@ -1,12 +1,13 @@
+import json
 from collections import defaultdict
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from decimal import Decimal
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from pydantic import BaseModel
-from sqlalchemy import and_, or_, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from hajiriflow.api.dependencies import (
@@ -14,18 +15,11 @@ from hajiriflow.api.dependencies import (
     get_db,
     require_organization_permission,
 )
-from hajiriflow.db.models.attendance import AttendanceRecord
-from hajiriflow.db.models.device import (
-    DeviceEmployeeMapping,
-    DeviceUser,
-    RawPunch,
-)
 from hajiriflow.db.models.payroll import PayrollLine, PayrollPeriod, PayrollRun
-from hajiriflow.db.models.workforce import (
-    Employee,
-    EmployeeOrganizationAssignment,
-    OrganizationNode,
-)
+from hajiriflow.db.models.workforce_profile import CompanyReportProfile
+from hajiriflow.reporting.exports import pdf_bytes, printable_html, workbook_bytes
+from hajiriflow.reporting.matrix import range_register
+from hajiriflow.reporting.service import AttendanceReportingService
 
 router = APIRouter(
     prefix="/api/v1/organizations/{organization_id}/reports",
@@ -36,35 +30,46 @@ router = APIRouter(
 class AttendanceEventView(BaseModel):
     id: UUID
     employee_id: UUID | None
-    device_id: UUID
+    source: str
+    device_id: UUID | None
     occurred_at: datetime
-    received_at: datetime
-    punch_kind: str
+    event_type: str
     verification_method: str | None
-    source_fingerprint: str
+    source_fingerprint: str | None
+    manual_status: str | None
 
 
 class DailyAttendanceRow(BaseModel):
     employee_id: UUID
     employee_code: str
     employee_name: str
+    work_date: date
     status: str
+    base_status: str
     check_in_at: datetime | None
     check_out_at: datetime | None
     worked_minutes: int
     late_minutes: int
+    planned_minutes: int
+    early_arrival_minutes: int
+    early_departure_minutes: int
+    late_departure_minutes: int
+    regular_overtime_minutes: int
+    holiday_overtime_minutes: int
+    source_event_count: int
     calculation_version: str | None
     source_revision: int | None
+    explanation_trace: list[dict]
 
 
 class DepartmentCoverageRow(BaseModel):
     department_id: UUID | None
     department_name: str
     employee_count: int
-    present: int
-    partial: int
-    absent: int
-    uncalculated: int
+    coverage_count: int
+    coverage_percent: float
+    status_counts: dict[str, int]
+    employee_ids: list[UUID]
 
 
 class EmployeeAttendanceDetail(BaseModel):
@@ -73,12 +78,19 @@ class EmployeeAttendanceDetail(BaseModel):
     employee_name: str
     from_date: date
     to_date: date
+    status_counts: dict[str, int]
     present_days: int
     partial_days: int
     absent_days: int
+    leave_days: int
+    field_duty_days: int
+    holiday_days: int
+    weekly_off_days: int
     uncalculated_days: int
     worked_minutes: int
     late_minutes: int
+    regular_overtime_minutes: int
+    holiday_overtime_minutes: int
     records: list[DailyAttendanceRow]
 
 
@@ -90,8 +102,26 @@ class WorkforceAttendanceSummary(BaseModel):
     present_records: int
     partial_records: int
     absent_records: int
+    leave_records: int
+    field_duty_records: int
+    holiday_records: int
+    weekly_off_records: int
+    uncalculated_records: int
     worked_minutes: int
     late_minutes: int
+    regular_overtime_minutes: int
+    holiday_overtime_minutes: int
+
+
+class MonthlyWorkforceRow(BaseModel):
+    employee_id: UUID
+    employee_code: str
+    employee_name: str
+    status_counts: dict[str, int]
+    worked_minutes: int
+    late_minutes: int
+    regular_overtime_minutes: int
+    holiday_overtime_minutes: int
 
 
 class HajiriRegisterRow(BaseModel):
@@ -99,9 +129,21 @@ class HajiriRegisterRow(BaseModel):
     employee_code: str
     employee_name: str
     days: dict[str, str]
+    codes: dict[str, str]
+    status_counts: dict[str, int]
     present_days: int
     partial_days: int
     absent_days: int
+
+
+class BsHajiriRegister(BaseModel):
+    bs_year: int
+    bs_month: int
+    month_name: str
+    days_in_month: int
+    first_ad_date: date
+    last_ad_date: date
+    rows: list[dict]
 
 
 class PayrollWorksheetRow(BaseModel):
@@ -129,79 +171,77 @@ class PayrollWorksheet(BaseModel):
     rows: list[PayrollWorksheetRow]
 
 
-def _date_range(from_date: date, to_date: date, *, max_days: int = 366) -> None:
-    if to_date < from_date:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="to_date must be on or after from_date",
-        )
-    if (to_date - from_date).days + 1 > max_days:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"report range cannot exceed {max_days} days",
-        )
+def _bad_request(exc: Exception) -> HTTPException:
+    if isinstance(exc, LookupError):
+        return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
 
 
-def _active_employees(session: Session, organization_id: UUID) -> list[Employee]:
-    return list(
-        session.scalars(
-            select(Employee)
-            .where(
-                Employee.organization_id == organization_id,
-                Employee.status == "active",
-            )
-            .order_by(Employee.employee_code)
-        ).all()
-    )
-
-
-def _record_row(employee: Employee, item: AttendanceRecord | None) -> DailyAttendanceRow:
+def _daily_view(row: dict[str, object]) -> DailyAttendanceRow:
     return DailyAttendanceRow(
-        employee_id=employee.id,
-        employee_code=employee.employee_code,
-        employee_name=employee.display_name,
-        status=item.status if item else "uncalculated",
-        check_in_at=item.check_in_at if item else None,
-        check_out_at=item.check_out_at if item else None,
-        worked_minutes=item.worked_minutes if item else 0,
-        late_minutes=item.late_minutes if item else 0,
-        calculation_version=item.calculation_version if item else None,
-        source_revision=item.source_revision if item else None,
+        employee_id=row["employee_id"],
+        employee_code=str(row["employee_code"]),
+        employee_name=str(row["employee_name"]),
+        work_date=row["work_date"],
+        status=str(row["day_status"]),
+        base_status=str(row["base_status"]),
+        check_in_at=row["check_in_at"],
+        check_out_at=row["check_out_at"],
+        worked_minutes=int(row["worked_minutes"]),
+        late_minutes=int(row["late_minutes"]),
+        planned_minutes=int(row["planned_minutes"]),
+        early_arrival_minutes=int(row["early_arrival_minutes"]),
+        early_departure_minutes=int(row["early_departure_minutes"]),
+        late_departure_minutes=int(row["late_departure_minutes"]),
+        regular_overtime_minutes=int(row["regular_overtime_minutes"]),
+        holiday_overtime_minutes=int(row["holiday_overtime_minutes"]),
+        source_event_count=int(row["source_event_count"]),
+        calculation_version=(
+            str(row["engine_version"]) if row["engine_version"] is not None else None
+        ),
+        source_revision=row["source_revision"],
+        explanation_trace=list(row["explanation_trace"]),
     )
 
 
-def _department_for_employee(
-    session: Session,
-    *,
-    organization_id: UUID,
-    employee_id: UUID,
-    observed_on: date,
-) -> OrganizationNode | None:
-    assignment = session.scalar(
-        select(EmployeeOrganizationAssignment)
-        .where(
-            EmployeeOrganizationAssignment.organization_id == organization_id,
-            EmployeeOrganizationAssignment.employee_id == employee_id,
-            EmployeeOrganizationAssignment.is_primary.is_(True),
-            EmployeeOrganizationAssignment.starts_on <= observed_on,
-            or_(
-                EmployeeOrganizationAssignment.ends_on.is_(None),
-                EmployeeOrganizationAssignment.ends_on >= observed_on,
-            ),
-        )
-        .order_by(EmployeeOrganizationAssignment.starts_on.desc())
-        .limit(1)
+def _detail_view(detail: dict[str, object]) -> EmployeeAttendanceDetail:
+    counts = defaultdict(int, detail["status_counts"])
+    return EmployeeAttendanceDetail(
+        employee_id=detail["employee_id"],
+        employee_code=str(detail["employee_code"]),
+        employee_name=str(detail["employee_name"]),
+        from_date=detail["from_date"],
+        to_date=detail["to_date"],
+        status_counts=dict(counts),
+        present_days=counts["present"],
+        partial_days=counts["partial"],
+        absent_days=counts["absent"],
+        leave_days=counts["leave"],
+        field_duty_days=counts["field_duty"],
+        holiday_days=counts["holiday"],
+        weekly_off_days=counts["weekly_off"],
+        uncalculated_days=counts["uncalculated"],
+        worked_minutes=int(detail["worked_minutes"]),
+        late_minutes=int(detail["late_minutes"]),
+        regular_overtime_minutes=int(detail["regular_overtime_minutes"]),
+        holiday_overtime_minutes=int(detail["holiday_overtime_minutes"]),
+        records=[_daily_view(row) for row in detail["records"]],
     )
-    if assignment is None:
-        return None
-    node = session.get(OrganizationNode, assignment.organization_node_id)
-    visited: set[UUID] = set()
-    while node is not None and node.id not in visited:
-        visited.add(node.id)
-        if node.node_type == "department":
-            return node
-        node = session.get(OrganizationNode, node.parent_id) if node.parent_id else None
-    return None
+
+
+def _report_metadata(session: Session, organization_id: UUID) -> list[tuple[str, object]]:
+    service = AttendanceReportingService(session)
+    company = service.company(organization_id)
+    profile = session.get(CompanyReportProfile, organization_id)
+    metadata: list[tuple[str, object]] = [("Organization", company.display_name)]
+    if profile is not None:
+        if profile.report_header:
+            metadata.append(("Report header", profile.report_header))
+        if profile.address:
+            metadata.append(("Address", profile.address))
+        if profile.phone:
+            metadata.append(("Phone", profile.phone))
+    return metadata
 
 
 @router.get("/attendance-events", response_model=list[AttendanceEventView])
@@ -215,48 +255,45 @@ def attendance_event_explorer(
     from_at: datetime | None = None,
     to_at: datetime | None = None,
     employee_id: UUID | None = None,
+    device_id: UUID | None = None,
     limit: int = Query(default=200, ge=1, le=1000),
+    offset: int = Query(default=0, ge=0),
 ) -> list[AttendanceEventView]:
-    query = (
-        select(RawPunch, DeviceEmployeeMapping.employee_id)
-        .outerjoin(
-            DeviceUser,
-            and_(
-                DeviceUser.device_id == RawPunch.device_id,
-                DeviceUser.external_user_id == RawPunch.device_user_identifier,
-            ),
+    try:
+        rows = AttendanceReportingService(session).attendance_events(
+            organization_id=organization_id,
+            from_at=from_at,
+            to_at=to_at,
+            employee_id=employee_id,
+            device_id=device_id,
+            limit=limit,
+            offset=offset,
         )
-        .outerjoin(
-            DeviceEmployeeMapping,
-            and_(
-                DeviceEmployeeMapping.device_user_id == DeviceUser.id,
-                DeviceEmployeeMapping.status == "active",
-            ),
+        return [AttendanceEventView(**row) for row in rows]
+    except (LookupError, ValueError) as exc:
+        raise _bad_request(exc) from exc
+
+
+@router.get("/employees/{employee_id}/events", response_model=list[AttendanceEventView])
+def employee_event_drilldown(
+    organization_id: UUID,
+    employee_id: UUID,
+    work_date: date,
+    _: Annotated[
+        RequestIdentity,
+        Depends(require_organization_permission("attendance.read")),
+    ],
+    session: Annotated[Session, Depends(get_db)],
+) -> list[AttendanceEventView]:
+    try:
+        rows = AttendanceReportingService(session).employee_day_events(
+            organization_id=organization_id,
+            employee_id=employee_id,
+            work_date=work_date,
         )
-        .where(RawPunch.organization_id == organization_id)
-    )
-    if from_at is not None:
-        query = query.where(RawPunch.occurred_at >= from_at)
-    if to_at is not None:
-        query = query.where(RawPunch.occurred_at <= to_at)
-    if employee_id is not None:
-        query = query.where(DeviceEmployeeMapping.employee_id == employee_id)
-    rows = session.execute(
-        query.order_by(RawPunch.occurred_at.desc()).limit(limit)
-    ).all()
-    return [
-        AttendanceEventView(
-            id=punch.id,
-            employee_id=mapped_employee_id,
-            device_id=punch.device_id,
-            occurred_at=punch.occurred_at,
-            received_at=punch.received_at,
-            punch_kind=punch.punch_kind,
-            verification_method=punch.verification_method,
-            source_fingerprint=punch.source_fingerprint,
-        )
-        for punch, mapped_employee_id in rows
-    ]
+        return [AttendanceEventView(**row) for row in rows]
+    except (LookupError, ValueError) as exc:
+        raise _bad_request(exc) from exc
 
 
 @router.get("/daily", response_model=list[DailyAttendanceRow])
@@ -269,21 +306,45 @@ def daily_workforce_status(
     ],
     session: Annotated[Session, Depends(get_db)],
     only_absent: bool = False,
+    limit: int = Query(default=500, ge=1, le=1000),
+    offset: int = Query(default=0, ge=0),
 ) -> list[DailyAttendanceRow]:
-    employees = _active_employees(session, organization_id)
-    records = {
-        item.employee_id: item
-        for item in session.scalars(
-            select(AttendanceRecord).where(
-                AttendanceRecord.organization_id == organization_id,
-                AttendanceRecord.work_date == work_date,
-            )
-        ).all()
-    }
-    rows = [_record_row(employee, records.get(employee.id)) for employee in employees]
+    try:
+        rows = AttendanceReportingService(session).daily_rows(
+            organization_id=organization_id,
+            work_date=work_date,
+            limit=limit,
+            offset=offset,
+        )
+    except (LookupError, ValueError) as exc:
+        raise _bad_request(exc) from exc
     if only_absent:
-        rows = [row for row in rows if row.status == "absent"]
-    return rows
+        rows = [row for row in rows if row["day_status"] == "absent"]
+    return [_daily_view(row) for row in rows]
+
+
+@router.get("/daily-absence", response_model=list[DailyAttendanceRow])
+def daily_absence_report(
+    organization_id: UUID,
+    work_date: date,
+    _: Annotated[
+        RequestIdentity,
+        Depends(require_organization_permission("attendance.read")),
+    ],
+    session: Annotated[Session, Depends(get_db)],
+    limit: int = Query(default=500, ge=1, le=1000),
+    offset: int = Query(default=0, ge=0),
+) -> list[DailyAttendanceRow]:
+    try:
+        rows = AttendanceReportingService(session).daily_rows(
+            organization_id=organization_id,
+            work_date=work_date,
+            limit=limit,
+            offset=offset,
+        )
+    except (LookupError, ValueError) as exc:
+        raise _bad_request(exc) from exc
+    return [_daily_view(row) for row in rows if row["day_status"] == "absent"]
 
 
 @router.get("/department-coverage", response_model=list[DepartmentCoverageRow])
@@ -296,51 +357,14 @@ def department_coverage(
     ],
     session: Annotated[Session, Depends(get_db)],
 ) -> list[DepartmentCoverageRow]:
-    employees = _active_employees(session, organization_id)
-    records = {
-        item.employee_id: item
-        for item in session.scalars(
-            select(AttendanceRecord).where(
-                AttendanceRecord.organization_id == organization_id,
-                AttendanceRecord.work_date == work_date,
-            )
-        ).all()
-    }
-    grouped: dict[tuple[UUID | None, str], dict[str, int]] = defaultdict(
-        lambda: {
-            "employee_count": 0,
-            "present": 0,
-            "partial": 0,
-            "absent": 0,
-            "uncalculated": 0,
-        }
-    )
-    for employee in employees:
-        department = _department_for_employee(
-            session,
+    try:
+        rows = AttendanceReportingService(session).department_coverage(
             organization_id=organization_id,
-            employee_id=employee.id,
-            observed_on=work_date,
+            work_date=work_date,
         )
-        key = (
-            department.id if department else None,
-            department.name if department else "Unassigned",
-        )
-        bucket = grouped[key]
-        bucket["employee_count"] += 1
-        record = records.get(employee.id)
-        bucket[record.status if record else "uncalculated"] += 1
-
-    return [
-        DepartmentCoverageRow(
-            department_id=department_id,
-            department_name=department_name,
-            **counts,
-        )
-        for (department_id, department_name), counts in sorted(
-            grouped.items(), key=lambda item: item[0][1].casefold()
-        )
-    ]
+        return [DepartmentCoverageRow(**row) for row in rows]
+    except (LookupError, ValueError) as exc:
+        raise _bad_request(exc) from exc
 
 
 @router.get(
@@ -358,45 +382,16 @@ def employee_attendance_detail(
     ],
     session: Annotated[Session, Depends(get_db)],
 ) -> EmployeeAttendanceDetail:
-    _date_range(from_date, to_date)
-    employee = session.get(Employee, employee_id)
-    if not employee or employee.organization_id != organization_id:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="employee not found",
+    try:
+        detail = AttendanceReportingService(session).employee_detail(
+            organization_id=organization_id,
+            employee_id=employee_id,
+            from_date=from_date,
+            to_date=to_date,
         )
-    records = list(
-        session.scalars(
-            select(AttendanceRecord)
-            .where(
-                AttendanceRecord.organization_id == organization_id,
-                AttendanceRecord.employee_id == employee_id,
-                AttendanceRecord.work_date >= from_date,
-                AttendanceRecord.work_date <= to_date,
-            )
-            .order_by(AttendanceRecord.work_date)
-        ).all()
-    )
-    by_date = {item.work_date: item for item in records}
-    rows: list[DailyAttendanceRow] = []
-    cursor = from_date
-    while cursor <= to_date:
-        rows.append(_record_row(employee, by_date.get(cursor)))
-        cursor += timedelta(days=1)
-    return EmployeeAttendanceDetail(
-        employee_id=employee.id,
-        employee_code=employee.employee_code,
-        employee_name=employee.display_name,
-        from_date=from_date,
-        to_date=to_date,
-        present_days=sum(item.status == "present" for item in rows),
-        partial_days=sum(item.status == "partial" for item in rows),
-        absent_days=sum(item.status == "absent" for item in rows),
-        uncalculated_days=sum(item.status == "uncalculated" for item in rows),
-        worked_minutes=sum(item.worked_minutes for item in rows),
-        late_minutes=sum(item.late_minutes for item in rows),
-        records=rows,
-    )
+        return _detail_view(detail)
+    except (LookupError, ValueError) as exc:
+        raise _bad_request(exc) from exc
 
 
 @router.get("/summary", response_model=WorkforceAttendanceSummary)
@@ -410,28 +405,71 @@ def workforce_attendance_summary(
     ],
     session: Annotated[Session, Depends(get_db)],
 ) -> WorkforceAttendanceSummary:
-    _date_range(from_date, to_date)
-    employees = _active_employees(session, organization_id)
-    records = list(
-        session.scalars(
-            select(AttendanceRecord).where(
-                AttendanceRecord.organization_id == organization_id,
-                AttendanceRecord.work_date >= from_date,
-                AttendanceRecord.work_date <= to_date,
-            )
-        ).all()
-    )
+    try:
+        service = AttendanceReportingService(session)
+        service.validate_range(from_date, to_date, max_days=62)
+        rows = service.monthly_summary(
+            organization_id=organization_id,
+            from_date=from_date,
+            to_date=to_date,
+            limit=1000,
+        )
+    except (LookupError, ValueError) as exc:
+        raise _bad_request(exc) from exc
+    counts: dict[str, int] = defaultdict(int)
+    for row in rows:
+        for key, value in row["status_counts"].items():
+            counts[key] += int(value)
+    uncalculated = counts["uncalculated"]
+    calculated = sum(counts.values()) - uncalculated
     return WorkforceAttendanceSummary(
         from_date=from_date,
         to_date=to_date,
-        employee_count=len(employees),
-        calculated_records=len(records),
-        present_records=sum(item.status == "present" for item in records),
-        partial_records=sum(item.status == "partial" for item in records),
-        absent_records=sum(item.status == "absent" for item in records),
-        worked_minutes=sum(item.worked_minutes for item in records),
-        late_minutes=sum(item.late_minutes for item in records),
+        employee_count=len(rows),
+        calculated_records=calculated,
+        present_records=counts["present"],
+        partial_records=counts["partial"],
+        absent_records=counts["absent"],
+        leave_records=counts["leave"],
+        field_duty_records=counts["field_duty"],
+        holiday_records=counts["holiday"],
+        weekly_off_records=counts["weekly_off"],
+        uncalculated_records=uncalculated,
+        worked_minutes=sum(int(row["worked_minutes"]) for row in rows),
+        late_minutes=sum(int(row["late_minutes"]) for row in rows),
+        regular_overtime_minutes=sum(
+            int(row["regular_overtime_minutes"]) for row in rows
+        ),
+        holiday_overtime_minutes=sum(
+            int(row["holiday_overtime_minutes"]) for row in rows
+        ),
     )
+
+
+@router.get("/monthly-summary", response_model=list[MonthlyWorkforceRow])
+def monthly_workforce_summary(
+    organization_id: UUID,
+    from_date: date,
+    to_date: date,
+    _: Annotated[
+        RequestIdentity,
+        Depends(require_organization_permission("attendance.read")),
+    ],
+    session: Annotated[Session, Depends(get_db)],
+    limit: int = Query(default=500, ge=1, le=1000),
+    offset: int = Query(default=0, ge=0),
+) -> list[MonthlyWorkforceRow]:
+    try:
+        rows = AttendanceReportingService(session).monthly_summary(
+            organization_id=organization_id,
+            from_date=from_date,
+            to_date=to_date,
+            limit=limit,
+            offset=offset,
+        )
+        return [MonthlyWorkforceRow(**row) for row in rows]
+    except (LookupError, ValueError) as exc:
+        raise _bad_request(exc) from exc
 
 
 @router.get("/hajiri-register", response_model=list[HajiriRegisterRow])
@@ -444,44 +482,407 @@ def hajiri_register(
         Depends(require_organization_permission("attendance.read")),
     ],
     session: Annotated[Session, Depends(get_db)],
+    limit: int = Query(default=500, ge=1, le=1000),
+    offset: int = Query(default=0, ge=0),
 ) -> list[HajiriRegisterRow]:
-    _date_range(from_date, to_date, max_days=62)
-    employees = _active_employees(session, organization_id)
-    records = list(
-        session.scalars(
-            select(AttendanceRecord).where(
-                AttendanceRecord.organization_id == organization_id,
-                AttendanceRecord.work_date >= from_date,
-                AttendanceRecord.work_date <= to_date,
-            )
-        ).all()
-    )
-    lookup = {(item.employee_id, item.work_date): item for item in records}
-    rows: list[HajiriRegisterRow] = []
-    for employee in employees:
-        days: dict[str, str] = {}
-        present = partial = absent = 0
-        cursor = from_date
-        while cursor <= to_date:
-            record = lookup.get((employee.id, cursor))
-            value = record.status if record else "uncalculated"
-            days[cursor.isoformat()] = value
-            present += int(value == "present")
-            partial += int(value == "partial")
-            absent += int(value == "absent")
-            cursor += timedelta(days=1)
-        rows.append(
+    try:
+        rows = range_register(
+            AttendanceReportingService(session),
+            organization_id=organization_id,
+            from_date=from_date,
+            to_date=to_date,
+            limit=limit,
+            offset=offset,
+        )
+    except (LookupError, ValueError) as exc:
+        raise _bad_request(exc) from exc
+    output = []
+    for row in rows:
+        counts = defaultdict(int, row["status_counts"])
+        output.append(
             HajiriRegisterRow(
-                employee_id=employee.id,
-                employee_code=employee.employee_code,
-                employee_name=employee.display_name,
-                days=days,
-                present_days=present,
-                partial_days=partial,
-                absent_days=absent,
+                employee_id=row["employee_id"],
+                employee_code=str(row["employee_code"]),
+                employee_name=str(row["employee_name"]),
+                days=dict(row["days"]),
+                codes=dict(row["codes"]),
+                status_counts=dict(counts),
+                present_days=counts["present"],
+                partial_days=counts["partial"],
+                absent_days=counts["absent"],
             )
         )
-    return rows
+    return output
+
+
+@router.get("/hajiri-register/bs", response_model=BsHajiriRegister)
+def bs_hajiri_register(
+    organization_id: UUID,
+    bs_year: int,
+    bs_month: int,
+    _: Annotated[
+        RequestIdentity,
+        Depends(require_organization_permission("attendance.read")),
+    ],
+    session: Annotated[Session, Depends(get_db)],
+    limit: int = Query(default=500, ge=1, le=1000),
+    offset: int = Query(default=0, ge=0),
+) -> BsHajiriRegister:
+    try:
+        item = AttendanceReportingService(session).hajiri_register(
+            organization_id=organization_id,
+            bs_year=bs_year,
+            bs_month=bs_month,
+            limit=limit,
+            offset=offset,
+        )
+        return BsHajiriRegister(**item)
+    except (LookupError, ValueError) as exc:
+        raise _bad_request(exc) from exc
+
+
+@router.get("/self/attendance", response_model=EmployeeAttendanceDetail)
+def own_attendance_detail(
+    organization_id: UUID,
+    from_date: date,
+    to_date: date,
+    identity: Annotated[
+        RequestIdentity,
+        Depends(require_organization_permission("attendance.self.read")),
+    ],
+    session: Annotated[Session, Depends(get_db)],
+) -> EmployeeAttendanceDetail:
+    employee_id = identity.principal.user.employee_id
+    if employee_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="web account is not linked to an employee",
+        )
+    try:
+        return _detail_view(
+            AttendanceReportingService(session).employee_detail(
+                organization_id=organization_id,
+                employee_id=employee_id,
+                from_date=from_date,
+                to_date=to_date,
+            )
+        )
+    except (LookupError, ValueError) as exc:
+        raise _bad_request(exc) from exc
+
+
+@router.get("/self/attendance/{work_date}/events", response_model=list[AttendanceEventView])
+def own_attendance_events(
+    organization_id: UUID,
+    work_date: date,
+    identity: Annotated[
+        RequestIdentity,
+        Depends(require_organization_permission("attendance.self.read")),
+    ],
+    session: Annotated[Session, Depends(get_db)],
+) -> list[AttendanceEventView]:
+    employee_id = identity.principal.user.employee_id
+    if employee_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="web account is not linked to an employee",
+        )
+    try:
+        rows = AttendanceReportingService(session).employee_day_events(
+            organization_id=organization_id,
+            employee_id=employee_id,
+            work_date=work_date,
+        )
+        return [AttendanceEventView(**row) for row in rows]
+    except (LookupError, ValueError) as exc:
+        raise _bad_request(exc) from exc
+
+
+def _export_table(
+    *,
+    report_name: str,
+    service: AttendanceReportingService,
+    organization_id: UUID,
+    work_date: date | None,
+    from_date: date | None,
+    to_date: date | None,
+    employee_id: UUID | None,
+    bs_year: int | None,
+    bs_month: int | None,
+) -> tuple[str, list[str], list[list[object]], list[tuple[str, object]], bool]:
+    if report_name in {"daily", "absence"}:
+        if work_date is None:
+            raise ValueError("work_date is required for daily exports")
+        rows = service.daily_rows(
+            organization_id=organization_id,
+            work_date=work_date,
+            limit=1000,
+        )
+        if report_name == "absence":
+            rows = [row for row in rows if row["day_status"] == "absent"]
+        headers = [
+            "Employee code",
+            "Employee name",
+            "Date",
+            "Status",
+            "Check in",
+            "Check out",
+            "Worked min",
+            "Late min",
+            "Regular OT",
+            "Holiday OT",
+            "Events",
+            "Engine",
+        ]
+        values = [
+            [
+                row["employee_code"],
+                row["employee_name"],
+                row["work_date"],
+                row["day_status"],
+                row["check_in_at"],
+                row["check_out_at"],
+                row["worked_minutes"],
+                row["late_minutes"],
+                row["regular_overtime_minutes"],
+                row["holiday_overtime_minutes"],
+                row["source_event_count"],
+                row["engine_version"],
+            ]
+            for row in rows
+        ]
+        return report_name.title(), headers, values, [("Date", work_date)], False
+
+    if report_name == "department":
+        if work_date is None:
+            raise ValueError("work_date is required for department export")
+        rows = service.department_coverage(
+            organization_id=organization_id,
+            work_date=work_date,
+        )
+        headers = ["Department", "Employees", "Coverage", "Coverage %", "Statuses"]
+        values = [
+            [
+                row["department_name"],
+                row["employee_count"],
+                row["coverage_count"],
+                row["coverage_percent"],
+                json.dumps(row["status_counts"], sort_keys=True),
+            ]
+            for row in rows
+        ]
+        return "Department coverage", headers, values, [("Date", work_date)], False
+
+    if report_name == "employee":
+        if employee_id is None or from_date is None or to_date is None:
+            raise ValueError("employee_id, from_date and to_date are required")
+        detail = service.employee_detail(
+            organization_id=organization_id,
+            employee_id=employee_id,
+            from_date=from_date,
+            to_date=to_date,
+        )
+        headers = [
+            "Date",
+            "Status",
+            "Check in",
+            "Check out",
+            "Worked min",
+            "Late min",
+            "Regular OT",
+            "Holiday OT",
+            "Events",
+        ]
+        values = [
+            [
+                row["work_date"],
+                row["day_status"],
+                row["check_in_at"],
+                row["check_out_at"],
+                row["worked_minutes"],
+                row["late_minutes"],
+                row["regular_overtime_minutes"],
+                row["holiday_overtime_minutes"],
+                row["source_event_count"],
+            ]
+            for row in detail["records"]
+        ]
+        metadata = [
+            ("Employee", detail["employee_name"]),
+            ("Employee code", detail["employee_code"]),
+            ("From", from_date),
+            ("To", to_date),
+        ]
+        return "Employee attendance detail", headers, values, metadata, False
+
+    if report_name == "monthly":
+        if from_date is None or to_date is None:
+            raise ValueError("from_date and to_date are required for monthly export")
+        rows = service.monthly_summary(
+            organization_id=organization_id,
+            from_date=from_date,
+            to_date=to_date,
+            limit=1000,
+        )
+        headers = [
+            "Employee code",
+            "Employee name",
+            "Statuses",
+            "Worked min",
+            "Late min",
+            "Regular OT",
+            "Holiday OT",
+        ]
+        values = [
+            [
+                row["employee_code"],
+                row["employee_name"],
+                json.dumps(row["status_counts"], sort_keys=True),
+                row["worked_minutes"],
+                row["late_minutes"],
+                row["regular_overtime_minutes"],
+                row["holiday_overtime_minutes"],
+            ]
+            for row in rows
+        ]
+        return "Monthly workforce summary", headers, values, [("From", from_date), ("To", to_date)], False
+
+    if report_name == "hajiri":
+        if bs_year is None or bs_month is None:
+            raise ValueError("bs_year and bs_month are required for Hajiri export")
+        register = service.hajiri_register(
+            organization_id=organization_id,
+            bs_year=bs_year,
+            bs_month=bs_month,
+            limit=1000,
+        )
+        days = list(range(1, int(register["days_in_month"]) + 1))
+        headers = ["Employee code", "Employee name", *[str(day) for day in days], "Totals"]
+        values = [
+            [
+                row["employee_code"],
+                row["employee_name"],
+                *[row["days"].get(str(day), "") for day in days],
+                json.dumps(row["status_counts"], sort_keys=True),
+            ]
+            for row in register["rows"]
+        ]
+        metadata = [
+            ("BS year", bs_year),
+            ("BS month", bs_month),
+            ("Month", register["month_name"]),
+            ("AD range", f"{register['first_ad_date']} to {register['last_ad_date']}"),
+        ]
+        return "Hajiri register", headers, values, metadata, True
+
+    if report_name == "events":
+        rows = service.attendance_events(
+            organization_id=organization_id,
+            limit=1000,
+        )
+        headers = [
+            "ID",
+            "Employee",
+            "Source",
+            "Device",
+            "Occurred at",
+            "Type",
+            "Verification",
+            "Fingerprint",
+            "Manual status",
+        ]
+        values = [
+            [
+                row["id"],
+                row["employee_id"],
+                row["source"],
+                row["device_id"],
+                row["occurred_at"],
+                row["event_type"],
+                row["verification_method"],
+                row["source_fingerprint"],
+                row["manual_status"],
+            ]
+            for row in rows
+        ]
+        return "Attendance event explorer", headers, values, [], False
+
+    raise ValueError("unsupported report export")
+
+
+@router.get("/exports/{report_name}")
+def export_report(
+    organization_id: UUID,
+    report_name: Literal["daily", "absence", "department", "employee", "monthly", "hajiri", "events"],
+    _: Annotated[
+        RequestIdentity,
+        Depends(require_organization_permission("attendance.export")),
+    ],
+    session: Annotated[Session, Depends(get_db)],
+    export_format: Literal["xlsx", "pdf", "html"] = Query(alias="format"),
+    work_date: date | None = None,
+    from_date: date | None = None,
+    to_date: date | None = None,
+    employee_id: UUID | None = None,
+    bs_year: int | None = None,
+    bs_month: int | None = None,
+) -> Response:
+    service = AttendanceReportingService(session)
+    try:
+        title, headers, rows, metadata, a3 = _export_table(
+            report_name=report_name,
+            service=service,
+            organization_id=organization_id,
+            work_date=work_date,
+            from_date=from_date,
+            to_date=to_date,
+            employee_id=employee_id,
+            bs_year=bs_year,
+            bs_month=bs_month,
+        )
+        metadata = [*_report_metadata(session, organization_id), *metadata]
+        filename = f"hajiriflow-{report_name}"
+        if export_format == "xlsx":
+            content = workbook_bytes(
+                title=title,
+                headers=headers,
+                rows=rows,
+                metadata=metadata,
+            )
+            return Response(
+                content=content,
+                media_type=(
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                ),
+                headers={
+                    "Content-Disposition": f'attachment; filename="{filename}.xlsx"'
+                },
+            )
+        if export_format == "pdf":
+            content = pdf_bytes(
+                title=title,
+                headers=headers,
+                rows=rows,
+                metadata=metadata,
+                a3_landscape=a3,
+            )
+            return Response(
+                content=content,
+                media_type="application/pdf",
+                headers={
+                    "Content-Disposition": f'attachment; filename="{filename}.pdf"'
+                },
+            )
+        content = printable_html(
+            title=title,
+            headers=headers,
+            rows=rows,
+            metadata=metadata,
+            a3_landscape=a3,
+        )
+        return Response(content=content, media_type="text/html; charset=utf-8")
+    except (LookupError, ValueError) as exc:
+        raise _bad_request(exc) from exc
 
 
 @router.get("/payroll/{run_id}/worksheet", response_model=PayrollWorksheet)
