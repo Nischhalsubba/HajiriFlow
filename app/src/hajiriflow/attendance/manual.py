@@ -5,7 +5,7 @@ from uuid import UUID
 from zoneinfo import ZoneInfo
 
 from openpyxl import Workbook, load_workbook
-from sqlalchemy import or_, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from hajiriflow.db.models.attendance_baseline import (
@@ -164,7 +164,11 @@ class ManualAttendanceService:
             event_time=normalized_time,
             event_type=event_type,
             reason=normalized_reason,
-            evidence_note=evidence_note.strip() if evidence_note and evidence_note.strip() else None,
+            evidence_note=(
+                evidence_note.strip()
+                if evidence_note and evidence_note.strip()
+                else None
+            ),
             status="approved" if auto_approved else "pending",
             requested_by=requested_by,
             decided_by=requested_by if auto_approved else None,
@@ -359,7 +363,11 @@ class ManualAttendanceService:
             workbook = load_workbook(io.BytesIO(content), read_only=True, data_only=True)
         except Exception as exc:
             raise ValueError("attendance import is not a readable XLSX workbook") from exc
-        sheet = workbook["Manual attendance"] if "Manual attendance" in workbook.sheetnames else workbook.active
+        sheet = (
+            workbook["Manual attendance"]
+            if "Manual attendance" in workbook.sheetnames
+            else workbook.active
+        )
         rows = sheet.iter_rows(values_only=True)
         try:
             headers = tuple(str(value or "").strip().casefold() for value in next(rows))
@@ -464,7 +472,10 @@ class ManualAttendanceService:
                 AttendanceImportRow(
                     session_id=session_item.id,
                     row_number=row_number,
-                    raw_data={key: str(value) if value is not None else None for key, value in raw_data.items()},
+                    raw_data={
+                        key: str(value) if value is not None else None
+                        for key, value in raw_data.items()
+                    },
                     normalized_data=normalized_data,
                     errors=errors,
                     is_valid=is_valid,
