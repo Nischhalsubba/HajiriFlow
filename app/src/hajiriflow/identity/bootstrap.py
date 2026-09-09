@@ -51,6 +51,7 @@ PERMISSIONS = {
     "payroll.approve": "Lock periods and approve, post, reverse, or close payroll.",
     "payroll.export": "Export posted payroll within authorized organization scope.",
     "payroll.self.read": "View the signed-in employee's own posted payroll and payslips.",
+    "operations.read": "View sanitized operational health, metrics, and alert indicators.",
 }
 
 ROLES = {
@@ -94,6 +95,7 @@ ROLES = {
             "attendance.manage",
             "attendance.approve",
             "attendance.export",
+            "operations.read",
         },
     },
     "biometric_administrator": {
@@ -119,6 +121,7 @@ ROLES = {
             "payroll.manage",
             "payroll.approve",
             "payroll.export",
+            "operations.read",
         },
     },
     "employee": {
