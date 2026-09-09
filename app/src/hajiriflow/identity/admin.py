@@ -65,7 +65,7 @@ class IdentityAdminService:
         statement = (
             select(Employee, CompanyProfile)
             .join(CompanyProfile, CompanyProfile.id == Employee.organization_id)
-            .where(Employee.status != "archived")
+            .where(Employee.status != "terminated")
         )
         if organization_id is not None:
             statement = statement.where(Employee.organization_id == organization_id)
@@ -135,7 +135,7 @@ class IdentityAdminService:
                 raise ValueError("users cannot change their own employee link")
             if employee_id is not None:
                 employee = self.session.get(Employee, employee_id)
-                if employee is None or employee.status == "archived":
+                if employee is None or employee.status == "terminated":
                     raise LookupError("employee not found")
                 existing_link = self.session.scalar(
                     select(UserAccount.id).where(
