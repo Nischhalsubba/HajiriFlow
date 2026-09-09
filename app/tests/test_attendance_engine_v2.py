@@ -256,6 +256,7 @@ def test_engine_applies_leave_and_holiday_priority_without_erasing_punches() -> 
                 decided_by=None,
             )
         )
+        session.flush()
         leave_record = engine.calculate_day(
             organization_id=company.id,
             employee_id=employee.id,
