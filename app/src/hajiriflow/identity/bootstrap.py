@@ -50,6 +50,7 @@ PERMISSIONS = {
     "payroll.manage": "Prepare payroll periods, runs, lines, and reversal requests.",
     "payroll.approve": "Lock periods and approve, post, reverse, or close payroll.",
     "payroll.export": "Export posted payroll within authorized organization scope.",
+    "payroll.self.read": "View the signed-in employee's own posted payroll and payslips.",
 }
 
 ROLES = {
@@ -127,6 +128,7 @@ ROLES = {
             "leave.request",
             "field_duty.request",
             "attendance.self.read",
+            "payroll.self.read",
         },
     },
 }
