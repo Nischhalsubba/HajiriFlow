@@ -11,6 +11,7 @@ from hajiriflow.api.calendar_leave_baseline import router as calendar_leave_base
 from hajiriflow.api.csrf import router as csrf_router
 from hajiriflow.api.device import router as device_router
 from hajiriflow.api.device_baseline import router as device_baseline_router
+from hajiriflow.api.device_inventory import router as device_inventory_router
 from hajiriflow.api.health import router as health_router
 from hajiriflow.api.identity import router as identity_router
 from hajiriflow.api.middleware import RequestContextMiddleware, SecurityHeadersMiddleware
@@ -63,6 +64,7 @@ def create_app() -> FastAPI:
     app.include_router(payroll_router)
     app.include_router(device_router)
     app.include_router(device_baseline_router)
+    app.include_router(device_inventory_router)
     app.include_router(reporting_router)
     app.include_router(biometric_router)
     app.include_router(csrf_router)
