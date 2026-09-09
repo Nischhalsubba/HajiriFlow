@@ -13,7 +13,8 @@ from hajiriflow.api.dependencies import (
     require_csrf,
     require_organization_permission,
 )
-from hajiriflow.attendance.service import CALCULATION_VERSION, AttendanceService
+from hajiriflow.attendance.engine import ENGINE_VERSION, AttendanceEngineService
+from hajiriflow.attendance.service import AttendanceService
 from hajiriflow.db.models.attendance import (
     AttendanceCorrection,
     AttendanceHistory,
@@ -29,11 +30,7 @@ router = APIRouter(
 class AttendanceCalculate(BaseModel):
     employee_id: UUID
     work_date: date
-    calculation_version: str = Field(
-        default=CALCULATION_VERSION,
-        min_length=1,
-        max_length=80,
-    )
+    calculation_version: Literal["attendance-v2"] = ENGINE_VERSION
 
 
 class AttendanceRecordView(BaseModel):
@@ -186,12 +183,11 @@ def calculate_attendance(
     session: Annotated[Session, Depends(get_db)],
 ) -> AttendanceRecordView:
     try:
-        item = AttendanceService(session).calculate_day(
+        item = AttendanceEngineService(session).calculate_day(
             organization_id=organization_id,
             employee_id=payload.employee_id,
             work_date=payload.work_date,
             actor_user_id=identity.principal.user.id,
-            calculation_version=payload.calculation_version,
         )
         session.commit()
         return _record_view(item)
