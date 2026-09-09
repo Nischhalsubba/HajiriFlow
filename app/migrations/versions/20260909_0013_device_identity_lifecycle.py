@@ -37,20 +37,31 @@ def upgrade() -> None:
         sa.Column("started_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("ended_at", sa.DateTime(timezone=True), nullable=True),
         sa.CheckConstraint(
-            "action_type IN ('push_users', 'migrate_users', 'archive_export', 'archive_restore')",
+            "action_type IN "
+            "('push_users', 'migrate_users', 'archive_export', 'archive_restore')",
             name="device_identity_action_valid_type",
         ),
         sa.CheckConstraint(
-            "status IN ('preview', 'approved', 'running', 'succeeded', 'partial', 'failed', 'cancelled')",
+            "status IN "
+            "('preview', 'approved', 'running', 'succeeded', "
+            "'partial', 'failed', 'cancelled')",
             name="device_identity_action_valid_status",
         ),
         sa.ForeignKeyConstraint(
             ["organization_id"], ["company_profiles.id"], ondelete="CASCADE"
         ),
-        sa.ForeignKeyConstraint(["source_device_id"], ["devices.id"], ondelete="SET NULL"),
-        sa.ForeignKeyConstraint(["target_device_id"], ["devices.id"], ondelete="SET NULL"),
-        sa.ForeignKeyConstraint(["requested_by"], ["user_accounts.id"], ondelete="SET NULL"),
-        sa.ForeignKeyConstraint(["approved_by"], ["user_accounts.id"], ondelete="SET NULL"),
+        sa.ForeignKeyConstraint(
+            ["source_device_id"], ["devices.id"], ondelete="SET NULL"
+        ),
+        sa.ForeignKeyConstraint(
+            ["target_device_id"], ["devices.id"], ondelete="SET NULL"
+        ),
+        sa.ForeignKeyConstraint(
+            ["requested_by"], ["user_accounts.id"], ondelete="SET NULL"
+        ),
+        sa.ForeignKeyConstraint(
+            ["approved_by"], ["user_accounts.id"], ondelete="SET NULL"
+        ),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(
@@ -83,8 +94,12 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(
             ["organization_id"], ["company_profiles.id"], ondelete="CASCADE"
         ),
-        sa.ForeignKeyConstraint(["source_device_id"], ["devices.id"], ondelete="RESTRICT"),
-        sa.ForeignKeyConstraint(["created_by"], ["user_accounts.id"], ondelete="SET NULL"),
+        sa.ForeignKeyConstraint(
+            ["source_device_id"], ["devices.id"], ondelete="RESTRICT"
+        ),
+        sa.ForeignKeyConstraint(
+            ["created_by"], ["user_accounts.id"], ondelete="SET NULL"
+        ),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(
