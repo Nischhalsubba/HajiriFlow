@@ -17,49 +17,52 @@ jobs:
         with:
           ref: baseline/attendance-engine-v2-20260909
       - name: Apply exact Ruff fixes
-        shell: python
+        shell: bash
         run: |
+          python - <<'PY'
           from pathlib import Path
 
-          manual = Path('app/src/hajiriflow/attendance/manual.py')
+          manual = Path("app/src/hajiriflow/attendance/manual.py")
           text = manual.read_text()
           replacements = {
-              'from sqlalchemy import or_, select': 'from sqlalchemy import select',
-              '            evidence_note=evidence_note.strip() if evidence_note and evidence_note.strip() else None,': '''            evidence_note=(
+              "from sqlalchemy import or_, select": "from sqlalchemy import select",
+              "            evidence_note=evidence_note.strip() if evidence_note and evidence_note.strip() else None,": """            evidence_note=(
                 evidence_note.strip()
                 if evidence_note and evidence_note.strip()
                 else None
-            ),''',
-              '        sheet = workbook["Manual attendance"] if "Manual attendance" in workbook.sheetnames else workbook.active': '''        sheet = (
-            workbook["Manual attendance"]
-            if "Manual attendance" in workbook.sheetnames
+            ),""",
+              "        sheet = workbook[\"Manual attendance\"] if \"Manual attendance\" in workbook.sheetnames else workbook.active": """        sheet = (
+            workbook[\"Manual attendance\"]
+            if \"Manual attendance\" in workbook.sheetnames
             else workbook.active
-        )''',
-              '                    raw_data={key: str(value) if value is not None else None for key, value in raw_data.items()},': '''                    raw_data={
+        )""",
+              "                    raw_data={key: str(value) if value is not None else None for key, value in raw_data.items()},": """                    raw_data={
                         key: str(value) if value is not None else None
                         for key, value in raw_data.items()
-                    },''',
+                    },""",
           }
           for old, new in replacements.items():
               if text.count(old) != 1:
-                  raise SystemExit(f'expected exactly one manual.py match: {old!r}')
+                  raise SystemExit(f"expected exactly one manual.py match: {old!r}")
               text = text.replace(old, new)
           manual.write_text(text)
 
-          test = Path('app/tests/test_attendance_engine_v2.py')
+          test = Path("app/tests/test_attendance_engine_v2.py")
           text = test.read_text()
-          old_import = 'from hajiriflow.db.models.attendance import AttendanceRecord\n'
+          old_import = "from hajiriflow.db.models.attendance import AttendanceRecord\n"
           if text.count(old_import) != 1:
-              raise SystemExit('expected one unused AttendanceRecord import')
-          text = text.replace(old_import, '')
-          old_assert = '        assert session.scalar(select(AttendanceDayRemark).where(AttendanceDayRemark.id == remark.id))'
-          new_assert = '''        assert session.scalar(
+              raise SystemExit("expected one unused AttendanceRecord import")
+          text = text.replace(old_import, "")
+          old_assert = "        assert session.scalar(select(AttendanceDayRemark).where(AttendanceDayRemark.id == remark.id))"
+          new_assert = """        assert session.scalar(
             select(AttendanceDayRemark).where(AttendanceDayRemark.id == remark.id)
-        )'''
+        )"""
           if text.count(old_assert) != 1:
-              raise SystemExit('expected one long attendance remark assertion')
+              raise SystemExit("expected one long attendance remark assertion")
           test.write_text(text.replace(old_assert, new_assert))
+          PY
       - name: Remove helper and commit
+        shell: bash
         run: |
           git rm .github/workflows/fix-m10-lint.yml
           git config user.name github-actions[bot]
