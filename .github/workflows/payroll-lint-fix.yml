@@ -1,0 +1,85 @@
+name: Payroll lint cleanup
+
+on:
+  push:
+    branches:
+      - baseline/payroll-completion-20260909
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: baseline/payroll-completion-20260909
+      - name: Apply exact lint fixes
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          api = Path("app/src/hajiriflow/api/payroll_baseline.py")
+          text = api.read_text()
+          text = text.replace(
+              "from hajiriflow.db.models.payroll_baseline import (\n",
+              "from hajiriflow.db.models.payroll_baseline import (\n",
+          )
+          marker = "from hajiriflow.payroll.baseline import PayrollBaselineService\n"
+          text = text.replace(
+              marker,
+              "from hajiriflow.db.models.workforce import Employee\n" + marker,
+          )
+          text = text.replace(
+              '    employee = session.get(__import__("hajiriflow.db.models.workforce", fromlist=["Employee"]).Employee, employee_id)\n',
+              "    employee = session.get(Employee, employee_id)\n",
+          )
+          api.write_text(text)
+
+          service = Path("app/src/hajiriflow/payroll/baseline.py")
+          text = service.read_text()
+          text = text.replace(
+              "from sqlalchemy import and_, func, or_, select\n",
+              "from sqlalchemy import and_, or_, select\n",
+          )
+          text = text.replace("    PAYROLL_READ,\n", "")
+          text = text.replace(
+              '                        "upper_bound": str(slab.upper_bound) if slab.upper_bound is not None else None,\n',
+              '                        "upper_bound": (\n'
+              '                            str(slab.upper_bound)\n'
+              '                            if slab.upper_bound is not None\n'
+              '                            else None\n'
+              '                        ),\n',
+          )
+          text = text.replace(
+              "        return list(self.session.execute(query.order_by(PayrollPeriod.starts_on, PayrollLine.id)).all())\n",
+              "        ordered = query.order_by(PayrollPeriod.starts_on, PayrollLine.id)\n"
+              "        return list(self.session.execute(ordered).all())\n",
+          )
+          text = text.replace(
+              '            rows=((payload["gross"], payload["deduction_total"], payload["tax"], payload["net"], payload["currency"]),),\n',
+              '            rows=((\n'
+              '                payload["gross"],\n'
+              '                payload["deduction_total"],\n'
+              '                payload["tax"],\n'
+              '                payload["net"],\n'
+              '                payload["currency"],\n'
+              '            ),),\n',
+          )
+          service.write_text(text)
+
+          test_file = Path("app/tests/test_payroll_baseline.py")
+          text = test_file.read_text().replace(
+              "from hajiriflow.db.models.payroll_baseline import EarningHead\n",
+              "",
+          )
+          test_file.write_text(text)
+          PY
+          rm .github/workflows/payroll-lint-fix.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix: clean payroll baseline lint"
+          git push origin HEAD:baseline/payroll-completion-20260909
