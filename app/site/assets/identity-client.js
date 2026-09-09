@@ -118,6 +118,29 @@
     return request("/admin/users");
   }
 
+  async function searchUsers({ query = "", status = "", linked = "", limit = 100, offset = 0 } = {}) {
+    const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+    if (query) params.set("q", query);
+    if (status) params.set("status", status);
+    if (linked !== "") params.set("linked", String(linked));
+    return request(`/admin/users/search?${params.toString()}`);
+  }
+
+  async function searchEmployeeLinks({ query = "", organizationId = "", limit = 50, offset = 0 } = {}) {
+    const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+    if (query) params.set("q", query);
+    if (organizationId) params.set("organization_id", organizationId);
+    return request(`/admin/employee-links?${params.toString()}`);
+  }
+
+  async function updateUser(userId, input) {
+    return request(`/admin/users/${encodeURIComponent(userId)}`, {
+      method: "PATCH",
+      csrf: true,
+      body: input,
+    });
+  }
+
   async function createUser(input) {
     return request("/admin/users", { method: "POST", csrf: true, body: input });
   }
@@ -168,6 +191,9 @@
     me,
     refreshCsrf,
     revokeRoleAssignment,
+    searchEmployeeLinks,
+    searchUsers,
     setUserStatus,
+    updateUser,
   });
 })();

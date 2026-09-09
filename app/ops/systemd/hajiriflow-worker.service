@@ -1,0 +1,28 @@
+[Unit]
+Description=HajiriFlow device/background worker
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=hajiriflow
+Group=hajiriflow
+WorkingDirectory=/opt/hajiriflow/app
+EnvironmentFile=/etc/hajiriflow/hajiriflow.env
+ExecStart=/opt/hajiriflow/venv/bin/python -m hajiriflow.device_platform.worker_cli
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

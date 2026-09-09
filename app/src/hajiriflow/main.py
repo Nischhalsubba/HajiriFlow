@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from hajiriflow import __version__
 from hajiriflow.api.attendance import router as attendance_router
 from hajiriflow.api.attendance_baseline import router as attendance_baseline_router
+from hajiriflow.api.audit import router as audit_router
 from hajiriflow.api.biometric import router as biometric_router
 from hajiriflow.api.calendar_leave import router as calendar_leave_router
 from hajiriflow.api.calendar_leave_baseline import router as calendar_leave_baseline_router
@@ -16,7 +17,9 @@ from hajiriflow.api.device_identity import router as device_identity_router
 from hajiriflow.api.device_inventory import router as device_inventory_router
 from hajiriflow.api.health import router as health_router
 from hajiriflow.api.identity import router as identity_router
+from hajiriflow.api.identity_admin_baseline import router as identity_admin_baseline_router
 from hajiriflow.api.middleware import RequestContextMiddleware, SecurityHeadersMiddleware
+from hajiriflow.api.operations import router as operations_router
 from hajiriflow.api.payroll import router as payroll_router
 from hajiriflow.api.payroll_baseline import router as payroll_baseline_router
 from hajiriflow.api.reporting import router as reporting_router
@@ -58,6 +61,8 @@ def create_app() -> FastAPI:
     )
     app.include_router(health_router)
     app.include_router(identity_router)
+    app.include_router(identity_admin_baseline_router)
+    app.include_router(audit_router)
     app.include_router(role_lifecycle_router)
     app.include_router(workforce_router)
     app.include_router(workforce_management_router)
@@ -72,6 +77,7 @@ def create_app() -> FastAPI:
     app.include_router(device_inventory_router)
     app.include_router(device_identity_router)
     app.include_router(reporting_router)
+    app.include_router(operations_router)
     app.include_router(biometric_router)
     app.include_router(csrf_router)
     return app
