@@ -35,9 +35,9 @@ def _view(item: AuditEvent) -> AuditEventView:
         object_type=item.object_type,
         object_id=item.object_id,
         reason=item.reason,
-        before_data=item.before_data,
-        after_data=item.after_data,
-        context_data=item.context_data,
+        before_data=item.before_data or {},
+        after_data=item.after_data or {},
+        context_data=item.context_data or {},
         request_id=item.request_id,
         occurred_at=item.occurred_at,
     )
