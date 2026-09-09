@@ -1,0 +1,69 @@
+name: Apply milestone 10 lint fixes
+
+on:
+  push:
+    branches:
+      - baseline/attendance-engine-v2-20260909
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: baseline/attendance-engine-v2-20260909
+      - name: Apply exact Ruff fixes
+        shell: python
+        run: |
+          from pathlib import Path
+
+          manual = Path('app/src/hajiriflow/attendance/manual.py')
+          text = manual.read_text()
+          replacements = {
+              'from sqlalchemy import or_, select': 'from sqlalchemy import select',
+              '            evidence_note=evidence_note.strip() if evidence_note and evidence_note.strip() else None,': '''            evidence_note=(
+                evidence_note.strip()
+                if evidence_note and evidence_note.strip()
+                else None
+            ),''',
+              '        sheet = workbook["Manual attendance"] if "Manual attendance" in workbook.sheetnames else workbook.active': '''        sheet = (
+            workbook["Manual attendance"]
+            if "Manual attendance" in workbook.sheetnames
+            else workbook.active
+        )''',
+              '                    raw_data={key: str(value) if value is not None else None for key, value in raw_data.items()},': '''                    raw_data={
+                        key: str(value) if value is not None else None
+                        for key, value in raw_data.items()
+                    },''',
+          }
+          for old, new in replacements.items():
+              if text.count(old) != 1:
+                  raise SystemExit(f'expected exactly one manual.py match: {old!r}')
+              text = text.replace(old, new)
+          manual.write_text(text)
+
+          test = Path('app/tests/test_attendance_engine_v2.py')
+          text = test.read_text()
+          old_import = 'from hajiriflow.db.models.attendance import AttendanceRecord\n'
+          if text.count(old_import) != 1:
+              raise SystemExit('expected one unused AttendanceRecord import')
+          text = text.replace(old_import, '')
+          old_assert = '        assert session.scalar(select(AttendanceDayRemark).where(AttendanceDayRemark.id == remark.id))'
+          new_assert = '''        assert session.scalar(
+            select(AttendanceDayRemark).where(AttendanceDayRemark.id == remark.id)
+        )'''
+          if text.count(old_assert) != 1:
+              raise SystemExit('expected one long attendance remark assertion')
+          test.write_text(text.replace(old_assert, new_assert))
+      - name: Remove helper and commit
+        run: |
+          git rm .github/workflows/fix-m10-lint.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add app/src/hajiriflow/attendance/manual.py app/tests/test_attendance_engine_v2.py
+          git commit -m "fix: satisfy attendance v2 lint gate"
+          git push origin HEAD:baseline/attendance-engine-v2-20260909
