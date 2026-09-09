@@ -10,16 +10,6 @@
     return codes.has(FULL_ACCESS) || codes.has(permission);
   }
 
-  function escapeHtml(value) {
-    return String(value ?? "").replace(/[&<>"']/g, (character) => ({
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      '"': "&quot;",
-      "'": "&#39;",
-    })[character]);
-  }
-
   function installEditButtons(root = document) {
     if (!can("identity.user.manage")) return;
     const currentId = window.HFIdentity?.session?.user?.id;
@@ -40,7 +30,109 @@
     const layer = document.getElementById("modal-layer");
     if (!layer) return;
     layer.hidden = true;
-    layer.innerHTML = "";
+    layer.replaceChildren();
+  }
+
+  function createField(labelText, input) {
+    const label = document.createElement("label");
+    const labelValue = document.createElement("span");
+    labelValue.textContent = labelText;
+    label.append(labelValue, input);
+    return label;
+  }
+
+  function createAccountDialog(user) {
+    const section = document.createElement("section");
+    section.className = "account-panel account-edit-dialog";
+    section.setAttribute("role", "dialog");
+    section.setAttribute("aria-modal", "true");
+    section.setAttribute("aria-labelledby", "account-edit-title");
+
+    const heading = document.createElement("div");
+    heading.className = "account-panel-heading";
+
+    const headingCopy = document.createElement("div");
+    const eyebrow = document.createElement("p");
+    eyebrow.className = "account-eyebrow";
+    eyebrow.textContent = "Account identity";
+    const title = document.createElement("h2");
+    title.id = "account-edit-title";
+    title.textContent = `Edit ${user.display_name}`;
+    headingCopy.append(eyebrow, title);
+
+    const closeButton = document.createElement("button");
+    closeButton.className = "account-button account-button-secondary";
+    closeButton.type = "button";
+    closeButton.dataset.accountEditClose = "";
+    closeButton.textContent = "Close";
+    heading.append(headingCopy, closeButton);
+
+    const form = document.createElement("form");
+    form.className = "account-form";
+    form.dataset.accountEditForm = "";
+    form.noValidate = true;
+
+    const displayName = document.createElement("input");
+    displayName.name = "display_name";
+    displayName.maxLength = 200;
+    displayName.required = true;
+    displayName.value = user.display_name || "";
+
+    const username = document.createElement("input");
+    username.name = "username";
+    username.minLength = 3;
+    username.maxLength = 100;
+    username.required = true;
+    username.value = user.username || "";
+
+    const employeeSearch = document.createElement("input");
+    employeeSearch.name = "employee_search";
+    employeeSearch.type = "search";
+    employeeSearch.autocomplete = "off";
+    employeeSearch.placeholder = "Search employee code or name";
+    const employeeSearchField = createField("Find employee to link", employeeSearch);
+    employeeSearchField.className = "account-form-wide";
+    const employeeHint = document.createElement("small");
+    employeeHint.textContent =
+      "Linking or unlinking an employee invalidates the edited account's active sessions.";
+    employeeSearchField.append(employeeHint);
+
+    const employeeSelect = document.createElement("select");
+    employeeSelect.name = "employee_id";
+    employeeSelect.dataset.accountEmployeeSelect = "";
+    employeeSelect.add(new Option("No employee link", ""));
+    if (user.employee_id) {
+      employeeSelect.add(
+        new Option(`Current employee · ${user.employee_id}`, user.employee_id, true, true),
+      );
+    }
+    const employeeSelectField = createField("Employee link", employeeSelect);
+    employeeSelectField.className = "account-form-wide";
+
+    const actions = document.createElement("div");
+    actions.className = "account-form-actions";
+    const saveButton = document.createElement("button");
+    saveButton.className = "account-button account-button-primary";
+    saveButton.type = "submit";
+    saveButton.textContent = "Save account";
+    actions.append(saveButton);
+
+    const status = document.createElement("p");
+    status.className = "account-form-status";
+    status.dataset.accountEditStatus = "";
+    status.setAttribute("role", "status");
+    status.setAttribute("aria-live", "polite");
+
+    form.append(
+      createField("Display name", displayName),
+      createField("Username", username),
+      employeeSearchField,
+      employeeSelectField,
+      actions,
+      status,
+    );
+    section.append(heading, form);
+    return section;
   }
 
   async function openDialog(userId) {
@@ -49,46 +141,8 @@
     const users = await window.HFIdentity.searchUsers({ limit: 200 });
     const user = users.find((item) => item.id === userId);
     if (!user) throw new Error("Account could not be loaded.");
+    layer.replaceChildren(createAccountDialog(user));
     layer.hidden = false;
-    layer.innerHTML = `
-      <section class="account-panel account-edit-dialog" role="dialog" aria-modal="true"
-        aria-labelledby="account-edit-title">
-        <div class="account-panel-heading">
-          <div>
-            <p class="account-eyebrow">Account identity</p>
-            <h2 id="account-edit-title">Edit ${escapeHtml(user.display_name)}</h2>
-          </div>
-          <button class="account-button account-button-secondary" type="button" data-account-edit-close>Close</button>
-        </div>
-        <form class="account-form" data-account-edit-form novalidate>
-          <label>
-            <span>Display name</span>
-            <input name="display_name" maxlength="200" required value="${escapeHtml(user.display_name)}">
-          </label>
-          <label>
-            <span>Username</span>
-            <input name="username" minlength="3" maxlength="100" required value="${escapeHtml(user.username)}">
-          </label>
-          <label class="account-form-wide">
-            <span>Find employee to link</span>
-            <input name="employee_search" type="search" autocomplete="off"
-              placeholder="Search employee code or name">
-            <small>Linking or unlinking an employee invalidates the edited account's active sessions.</small>
-          </label>
-          <label class="account-form-wide">
-            <span>Employee link</span>
-            <select name="employee_id" data-account-employee-select>
-              <option value="">No employee link</option>
-              ${user.employee_id ? `<option value="${escapeHtml(user.employee_id)}" selected>Current employee · ${escapeHtml(user.employee_id)}</option>` : ""}
-            </select>
-          </label>
-          <div class="account-form-actions">
-            <button class="account-button account-button-primary" type="submit">Save account</button>
-          </div>
-          <p class="account-form-status" data-account-edit-status role="status" aria-live="polite"></p>
-        </form>
-      </section>
-    `;
     layer.querySelector("input[name='display_name']")?.focus();
   }
 
@@ -107,12 +161,19 @@
           query: input.value.trim(),
           limit: 25,
         });
-        select.innerHTML = '<option value="">No employee link</option>' + rows.map((row) => (
-          `<option value="${escapeHtml(row.id)}">${escapeHtml(row.organization_name)} · ${escapeHtml(row.employee_code)} · ${escapeHtml(row.display_name)}</option>`
-        )).join("");
+        const options = [new Option("No employee link", "")];
+        for (const row of rows) {
+          options.push(
+            new Option(
+              `${row.organization_name} · ${row.employee_code} · ${row.display_name}`,
+              row.id,
+            ),
+          );
+        }
+        select.replaceChildren(...options);
         if ([...select.options].some((option) => option.value === current)) select.value = current;
       } catch {
-        select.innerHTML = '<option value="">Employee search unavailable</option>';
+        select.replaceChildren(new Option("Employee search unavailable", ""));
       }
     }, 250);
   });
@@ -144,7 +205,8 @@
         employee_id: String(data.get("employee_id") || "") || null,
       });
       status.dataset.tone = "success";
-      status.textContent = "Account updated. Security-sensitive changes invalidated its prior sessions.";
+      status.textContent =
+        "Account updated. Security-sensitive changes invalidated its prior sessions.";
       setTimeout(() => {
         editButton.removeAttribute("aria-expanded");
         closeDialog();
@@ -161,7 +223,9 @@
   document.addEventListener("click", async (event) => {
     const close = event.target.closest?.("[data-account-edit-close]");
     if (close) {
-      document.querySelector("[data-edit-account][aria-expanded='true']")?.removeAttribute("aria-expanded");
+      document
+        .querySelector("[data-edit-account][aria-expanded='true']")
+        ?.removeAttribute("aria-expanded");
       closeDialog();
       return;
     }
