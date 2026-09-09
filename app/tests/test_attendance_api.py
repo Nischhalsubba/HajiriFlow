@@ -133,7 +133,7 @@ def test_attendance_api_is_org_scoped_and_corrections_require_checker() -> None:
         record = calculated.json()
         assert record["status"] == "absent"
         assert record["source_revision"] == 1
-        assert record["calculation_version"] == "attendance-v1"
+        assert record["calculation_version"] == "attendance-v2"
 
         missing_csrf = client.post(
             f"/api/v1/organizations/{primary['id']}/attendance/"
