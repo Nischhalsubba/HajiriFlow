@@ -7,7 +7,7 @@ from cryptography.fernet import Fernet
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 
-from hajiriflow.core.config import Settings, get_settings
+from hajiriflow.core.config import get_settings
 from hajiriflow.db.models.device import Device, DeviceEmployeeMapping, DeviceUser
 from hajiriflow.db.models.device_identity import DeviceArchive, DeviceIdentityAction
 from hajiriflow.db.models.workforce import CompanyProfile, Employee
@@ -165,7 +165,6 @@ def _device_user(
 def _map_user(
     session,
     company: CompanyProfile,
-    device: Device,
     user: DeviceUser,
     employee: Employee,
 ) -> None:
@@ -173,7 +172,6 @@ def _map_user(
         DeviceEmployeeMapping(
             organization_id=company.id,
             employee_id=employee.id,
-            device_id=device.id,
             device_user_id=user.id,
             status="active",
         )
@@ -195,7 +193,7 @@ def test_compare_device_reports_unknown_and_missing_identities() -> None:
         no_attendance_id = _employee(session, company, code="EMP-3", attendance_id=None)
         device = _device(session, company, "GATE-A")
         known_user = _device_user(session, company, device, external_user_id="101")
-        _map_user(session, company, device, known_user, enrolled)
+        _map_user(session, company, known_user, enrolled)
         _device_user(session, company, device, external_user_id="999")
 
         comparison = DeviceIdentityLifecycleService(session).compare_device(
@@ -287,7 +285,7 @@ def test_biometric_migration_requires_consent_and_never_overwrites() -> None:
             external_user_id="101",
             template_count=2,
         )
-        _map_user(session, company, source, source_user, employee)
+        _map_user(session, company, source_user, employee)
         service = DeviceIdentityLifecycleService(session)
         actor = uuid4()
 
@@ -342,8 +340,13 @@ def test_biometric_migration_requires_consent_and_never_overwrites() -> None:
         assert action.status == "succeeded"
         assert target_adapter.pushes == [("101", True), ("101", False)]
 
-        target_user = _device_user(session, company, target, external_user_id="101")
-        assert target_user.external_user_id == "101"
+        target_user = session.scalar(
+            select(DeviceUser).where(
+                DeviceUser.device_id == target.id,
+                DeviceUser.external_user_id == "101",
+            )
+        )
+        assert target_user is not None
         conflict = service.preview_action(
             organization_id=company.id,
             action_type="migrate_users",
@@ -372,7 +375,7 @@ def test_archive_is_encrypted_and_restore_is_previewed() -> None:
             external_user_id="101",
             template_count=1,
         )
-        _map_user(session, company, source, user, employee)
+        _map_user(session, company, user, employee)
         BiometricPrivacyService(session).record_consent(
             organization_id=company.id,
             employee_id=employee.id,
