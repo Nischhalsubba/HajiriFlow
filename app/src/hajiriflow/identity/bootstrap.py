@@ -44,6 +44,8 @@ PERMISSIONS = {
     "attendance.read": "View normalized attendance and correction history.",
     "attendance.manage": "Calculate attendance and request controlled corrections.",
     "attendance.approve": "Approve or reject attendance corrections.",
+    "attendance.export": "Export attendance reports within authorized organization scope.",
+    "attendance.self.read": "View the signed-in employee's own attendance and evidence.",
     "payroll.read": "View organization payroll periods, runs, and employee lines.",
     "payroll.manage": "Prepare payroll periods, runs, lines, and reversal requests.",
     "payroll.approve": "Lock periods and approve, post, reverse, or close payroll.",
@@ -90,6 +92,7 @@ ROLES = {
             "attendance.read",
             "attendance.manage",
             "attendance.approve",
+            "attendance.export",
         },
     },
     "biometric_administrator": {
@@ -110,6 +113,7 @@ ROLES = {
             "calendar.read",
             "leave.read",
             "attendance.read",
+            "attendance.export",
             "payroll.read",
             "payroll.manage",
             "payroll.approve",
@@ -122,6 +126,7 @@ ROLES = {
             "calendar.read",
             "leave.request",
             "field_duty.request",
+            "attendance.self.read",
         },
     },
 }
