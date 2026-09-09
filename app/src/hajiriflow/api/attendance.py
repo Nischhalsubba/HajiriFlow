@@ -96,6 +96,17 @@ def _service_error(exc: Exception) -> HTTPException:
     return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
 
 
+def _reject_legacy_v2_correction(record: AttendanceRecord | None) -> None:
+    if record is not None and record.calculation_version == ENGINE_VERSION:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "attendance-v2 records use additive manual events; "
+                "legacy record corrections are disabled"
+            ),
+        )
+
+
 def _record_view(item: AttendanceRecord) -> AttendanceRecordView:
     return AttendanceRecordView(
         id=item.id,
@@ -211,6 +222,9 @@ def request_attendance_correction(
     ],
     session: Annotated[Session, Depends(get_db)],
 ) -> AttendanceCorrectionView:
+    record = session.get(AttendanceRecord, attendance_record_id)
+    if record is not None and record.organization_id == organization_id:
+        _reject_legacy_v2_correction(record)
     try:
         item = AttendanceService(session).request_correction(
             organization_id=organization_id,
@@ -242,6 +256,11 @@ def decide_attendance_correction(
     ],
     session: Annotated[Session, Depends(get_db)],
 ) -> AttendanceCorrectionView:
+    correction = session.get(AttendanceCorrection, correction_id)
+    if correction is not None and correction.organization_id == organization_id:
+        _reject_legacy_v2_correction(
+            session.get(AttendanceRecord, correction.attendance_record_id)
+        )
     try:
         item = AttendanceService(session).decide_correction(
             organization_id=organization_id,
