@@ -2,7 +2,7 @@ from collections import defaultdict
 from datetime import date, timedelta
 from uuid import UUID
 
-from hajiriflow.reporting.service import AttendanceReportingService, STATUS_CODES
+from hajiriflow.reporting.service import STATUS_CODES, AttendanceReportingService
 
 
 def range_register(
