@@ -174,6 +174,23 @@ class DeviceOperationService:
             query = query.with_for_update(skip_locked=True)
         return tuple(self.session.scalars(query).all())
 
+    @staticmethod
+    def _finish_pull_failure(
+        pull_session: DevicePullSession,
+        *,
+        code: str,
+        detail: str,
+        inserted: int = 0,
+        duplicates: int = 0,
+    ) -> DevicePullSession:
+        pull_session.status = "failed"
+        pull_session.error_code = code[:100]
+        pull_session.error_detail = detail
+        pull_session.ingested_count = inserted
+        pull_session.duplicate_count = duplicates
+        pull_session.ended_at = utc_now()
+        return pull_session
+
     def _pull_historical(
         self,
         *,
@@ -181,8 +198,9 @@ class DeviceOperationService:
         device: Device,
         adapter: DeviceAdapter,
     ) -> DevicePullSession:
+        capabilities = adapter.capabilities()
         pull_range = getattr(adapter, "pull_punches_range", None)
-        if not callable(pull_range):
+        if not capabilities.historical_pulls or not callable(pull_range):
             raise ValueError("registered adapter does not support historical pulls")
         if operation.window_start is None or operation.window_end is None:
             raise ValueError("historical operation is missing its range")
@@ -226,11 +244,14 @@ class DeviceOperationService:
                     except Exception as exc:
                         failure = exc
                 if batch is None:
-                    pull_session.status = "failed"
-                    pull_session.error_code = type(failure).__name__[:100] if failure else "pull_failed"
-                    pull_session.error_detail = "Historical device pull failed after bounded retries."
-                    pull_session.ended_at = utc_now()
-                    return pull_session
+                    error_code = type(failure).__name__ if failure else "pull_failed"
+                    return self._finish_pull_failure(
+                        pull_session,
+                        code=error_code,
+                        detail="Historical device pull failed after bounded retries.",
+                        inserted=total_inserted,
+                        duplicates=total_duplicates,
+                    )
 
                 with self.session.begin_nested():
                     inserted, duplicates = self.platform.ingest_punches(
@@ -249,11 +270,23 @@ class DeviceOperationService:
                     device.last_seen_at = pull_session.ended_at
                     return pull_session
                 if batch.next_cursor in seen_cursors:
-                    raise ValueError("historical adapter repeated a cursor")
+                    return self._finish_pull_failure(
+                        pull_session,
+                        code="cursor_cycle",
+                        detail="Historical adapter repeated a pagination cursor.",
+                        inserted=total_inserted,
+                        duplicates=total_duplicates,
+                    )
                 seen_cursors.add(batch.next_cursor)
                 cursor = batch.next_cursor
 
-        raise ValueError("historical pull exceeded the maximum batch count")
+        return self._finish_pull_failure(
+            pull_session,
+            code="batch_limit",
+            detail="Historical pull exceeded the bounded batch limit.",
+            inserted=total_inserted,
+            duplicates=total_duplicates,
+        )
 
     def process(
         self,
@@ -294,7 +327,9 @@ class DeviceOperationService:
                 operation.status = "succeeded" if result.reachable else "failed"
                 if not result.reachable:
                     operation.error_code = "device_unreachable"
-                    operation.error_detail = "Device diagnostics reported that the device is unreachable."
+                    operation.error_detail = (
+                        "Device diagnostics reported that the device is unreachable."
+                    )
                 runtime.last_diagnostics_at = result.observed_at
                 if result.reachable:
                     device.last_seen_at = result.observed_at
@@ -321,6 +356,8 @@ class DeviceOperationService:
                     device=device,
                     adapter=adapter,
                 )
+                if operation.window_start is None or operation.window_end is None:
+                    raise ValueError("historical operation is missing its range")
                 operation.result_data = {
                     "pull_session_id": str(pull.id),
                     "ingested_count": pull.ingested_count,
@@ -336,7 +373,9 @@ class DeviceOperationService:
         except Exception as exc:
             operation.status = "failed"
             operation.error_code = type(exc).__name__[:100]
-            operation.error_detail = "Device operation failed; see sanitized worker diagnostics."
+            operation.error_detail = (
+                "Device operation failed; see sanitized worker diagnostics."
+            )
         finally:
             operation.ended_at = utc_now()
             self.session.flush()
