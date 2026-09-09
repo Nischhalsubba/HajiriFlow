@@ -23,6 +23,7 @@ from hajiriflow.device_platform.service import DevicePlatformService
 
 ACTION_TYPES = {"push_users", "migrate_users", "archive_export", "archive_restore"}
 MAX_ACTION_ROWS = 200
+SUPPORTED_IDENTITY_ADAPTERS = {"hajiriflow_gateway_v1"}
 
 
 def utc_now() -> datetime:
@@ -77,6 +78,11 @@ class DeviceIdentityLifecycleService:
             raise LookupError("device not found")
         return item
 
+    @staticmethod
+    def _require_identity_adapter(device: Device) -> None:
+        if device.adapter_key not in SUPPORTED_IDENTITY_ADAPTERS:
+            raise ValueError("registered adapter does not support the identity lifecycle")
+
     def _employee(self, organization_id: UUID, employee_id: UUID) -> Employee:
         item = self.session.get(Employee, employee_id)
         if not item or item.organization_id != organization_id:
@@ -103,7 +109,6 @@ class DeviceIdentityLifecycleService:
             select(DeviceUser).where(
                 DeviceUser.device_id == device_id,
                 DeviceUser.external_user_id == external_user_id,
-                DeviceUser.active.is_(True),
             )
         )
 
@@ -115,25 +120,44 @@ class DeviceIdentityLifecycleService:
             )
         )
 
+    def _latest_consent_granted(self, organization_id: UUID, employee_id: UUID) -> bool:
+        consent = self.privacy.latest_consent(
+            organization_id=organization_id,
+            employee_id=employee_id,
+        )
+        return consent is not None and consent.decision == "granted"
+
     def _biometric_move_allowed(
         self,
         *,
         organization_id: UUID,
         device_user: DeviceUser,
     ) -> tuple[bool, UUID | None, str | None]:
-        if device_user.template_count <= 0:
-            mapping = self._mapping(device_user.id)
-            return True, mapping.employee_id if mapping else None, None
         mapping = self._mapping(device_user.id)
+        if device_user.template_count <= 0:
+            return True, mapping.employee_id if mapping else None, None
         if mapping is None:
             return False, None, "biometric_identity_is_not_mapped"
-        consent = self.privacy.latest_consent(
-            organization_id=organization_id,
-            employee_id=mapping.employee_id,
-        )
-        if consent is None or consent.decision != "granted":
+        if not self._latest_consent_granted(organization_id, mapping.employee_id):
             return False, mapping.employee_id, "biometric_consent_not_granted"
         return True, mapping.employee_id, None
+
+    def _assert_exported_bundle_consent(
+        self,
+        *,
+        organization_id: UUID,
+        device_user: DeviceUser,
+        bundle: DeviceIdentityBundle,
+    ) -> UUID | None:
+        mapping = self._mapping(device_user.id)
+        contains_biometric = bundle.template_count > 0 or bool(bundle.biometric_payload)
+        if not contains_biometric:
+            return mapping.employee_id if mapping else None
+        if mapping is None:
+            raise ValueError("biometric_identity_is_not_mapped")
+        if not self._latest_consent_granted(organization_id, mapping.employee_id):
+            raise ValueError("biometric_consent_not_granted")
+        return mapping.employee_id
 
     def compare_device(
         self,
@@ -171,15 +195,18 @@ class DeviceIdentityLifecycleService:
                 )
             ).all()
         }
+        mapping_rows = self.session.execute(
+            select(DeviceEmployeeMapping, DeviceUser)
+            .join(DeviceUser, DeviceUser.id == DeviceEmployeeMapping.device_user_id)
+            .where(
+                DeviceEmployeeMapping.organization_id == organization_id,
+                DeviceEmployeeMapping.status == "active",
+                DeviceUser.device_id == device_id,
+            )
+        ).all()
         mappings = {
-            item.device_user_id: item.employee_id
-            for item in self.session.scalars(
-                select(DeviceEmployeeMapping).where(
-                    DeviceEmployeeMapping.organization_id == organization_id,
-                    DeviceEmployeeMapping.device_id == device_id,
-                    DeviceEmployeeMapping.status == "active",
-                )
-            ).all()
+            mapping.device_user_id: mapping.employee_id
+            for mapping, _device_user in mapping_rows
         }
         mapped_employee_ids = set(mappings.values())
         unknown = [
@@ -223,7 +250,8 @@ class DeviceIdentityLifecycleService:
         target_device_id: UUID,
         employee_ids: list[UUID],
     ) -> dict:
-        self._device(organization_id, target_device_id)
+        target = self._device(organization_id, target_device_id)
+        self._require_identity_adapter(target)
         if not employee_ids or len(employee_ids) > MAX_ACTION_ROWS:
             raise ValueError("select between 1 and 200 employees")
         rows: list[dict] = []
@@ -284,11 +312,13 @@ class DeviceIdentityLifecycleService:
         device_user_ids: list[UUID],
         target_device_id: UUID | None = None,
     ) -> dict:
-        self._device(organization_id, source_device_id)
+        source = self._device(organization_id, source_device_id)
+        self._require_identity_adapter(source)
         if target_device_id is not None:
             if target_device_id == source_device_id:
                 raise ValueError("source and target devices must be different")
-            self._device(organization_id, target_device_id)
+            target = self._device(organization_id, target_device_id)
+            self._require_identity_adapter(target)
         if not device_user_ids or len(device_user_ids) > MAX_ACTION_ROWS:
             raise ValueError("select between 1 and 200 device users")
         rows: list[dict] = []
@@ -334,7 +364,8 @@ class DeviceIdentityLifecycleService:
         target_device_id: UUID,
         archive_id: UUID,
     ) -> dict:
-        self._device(organization_id, target_device_id)
+        target = self._device(organization_id, target_device_id)
+        self._require_identity_adapter(target)
         archive = self.session.get(DeviceArchive, archive_id)
         if not archive or archive.organization_id != organization_id:
             raise LookupError("device archive not found")
@@ -366,11 +397,7 @@ class DeviceIdentityLifecycleService:
                     blocking += 1
                 else:
                     employee_id = UUID(str(employee_id_text))
-                    consent = self.privacy.latest_consent(
-                        organization_id=organization_id,
-                        employee_id=employee_id,
-                    )
-                    if consent is None or consent.decision != "granted":
+                    if not self._latest_consent_granted(organization_id, employee_id):
                         status_value = "blocked"
                         code = "biometric_consent_not_granted"
                         blocking += 1
@@ -609,7 +636,7 @@ class DeviceIdentityLifecycleService:
     def _refresh_inventory(self, *, device: Device, adapter: DeviceAdapter) -> None:
         try:
             if adapter.capabilities().list_users:
-                self.platform.sync_users(device=device, users=adapter.list_users())
+                self.platform.sync_device_users(device=device, users=adapter.list_users())
         except Exception:
             return
 
@@ -711,6 +738,11 @@ class DeviceIdentityLifecycleService:
                     )
                     continue
                 bundle = export(user.external_user_id)
+                self._assert_exported_bundle_consent(
+                    organization_id=action.organization_id,
+                    device_user=user,
+                    bundle=bundle,
+                )
                 result = self._call_push(target_adapter, bundle)
                 rows.append(
                     self._write_result(
@@ -754,7 +786,7 @@ class DeviceIdentityLifecycleService:
                     source.id,
                     device_user_id,
                 )
-                allowed, employee_id, consent_code = self._biometric_move_allowed(
+                allowed, _, consent_code = self._biometric_move_allowed(
                     organization_id=action.organization_id,
                     device_user=user,
                 )
@@ -769,6 +801,11 @@ class DeviceIdentityLifecycleService:
                     )
                     continue
                 bundle = export(user.external_user_id)
+                employee_id = self._assert_exported_bundle_consent(
+                    organization_id=action.organization_id,
+                    device_user=user,
+                    bundle=bundle,
+                )
                 bundles.append(_bundle_payload(bundle))
                 manifest.append(
                     {
@@ -837,11 +874,33 @@ class DeviceIdentityLifecycleService:
         raw_bundles = decoded.get("bundles") if isinstance(decoded, dict) else None
         if not isinstance(raw_bundles, list):
             raise ValueError("device archive payload is invalid")
+        manifest_rows = archive.manifest_data.get("rows", [])
+        if not isinstance(manifest_rows, list):
+            raise ValueError("device archive manifest is invalid")
+        manifest_by_external_id = {
+            str(item.get("external_user_id")): item
+            for item in manifest_rows
+            if isinstance(item, dict) and item.get("external_user_id")
+        }
         rows: list[dict] = []
         restored = 0
         for raw_bundle in raw_bundles:
             bundle = _bundle_from_payload(raw_bundle)
             try:
+                manifest = manifest_by_external_id.get(bundle.external_user_id)
+                if manifest is None:
+                    raise ValueError("archive_manifest_identity_missing")
+                contains_biometric = bundle.template_count > 0 or bool(bundle.biometric_payload)
+                if contains_biometric:
+                    employee_id_text = manifest.get("employee_id")
+                    if not employee_id_text:
+                        raise ValueError("archive_biometric_identity_is_not_mapped")
+                    employee_id = UUID(str(employee_id_text))
+                    if not self._latest_consent_granted(
+                        action.organization_id,
+                        employee_id,
+                    ):
+                        raise ValueError("biometric_consent_not_granted")
                 if self._target_has_conflict(
                     target_device_id=target.id,
                     external_user_id=bundle.external_user_id,
@@ -897,7 +956,7 @@ class DeviceIdentityLifecycleService:
         action: DeviceIdentityAction,
         *,
         adapter_resolver,
-        cipher: DeviceSecretCipher,
+        cipher: DeviceSecretCipher | None,
     ) -> DeviceIdentityAction:
         if action.status != "approved":
             return action
@@ -947,6 +1006,8 @@ class DeviceIdentityLifecycleService:
             elif action.action_type == "archive_export":
                 if source is None or source_adapter is None:
                     raise ValueError("source adapter is unavailable")
+                if cipher is None:
+                    raise ValueError("archive encryption keyring is unavailable")
                 rows, archive_id = self._execute_archive_export(
                     action,
                     source=source,
@@ -956,6 +1017,8 @@ class DeviceIdentityLifecycleService:
             else:
                 if target is None or target_adapter is None:
                     raise ValueError("target adapter is unavailable")
+                if cipher is None:
+                    raise ValueError("archive encryption keyring is unavailable")
                 rows = self._execute_archive_restore(
                     action,
                     target=target,
@@ -970,14 +1033,18 @@ class DeviceIdentityLifecycleService:
                     "succeeded": sum(
                         item.get("status") == "succeeded" for item in rows
                     ),
-                    "failed": sum(item.get("status") != "succeeded" for item in rows),
+                    "failed": sum(
+                        item.get("status") != "succeeded" for item in rows
+                    ),
                 },
                 "archive_id": str(archive_id) if archive_id else None,
             }
         except Exception as exc:
             action.status = "failed"
             action.error_code = type(exc).__name__[:100]
-            action.error_detail = "Device identity action failed; inspect sanitized worker diagnostics."
+            action.error_detail = (
+                "Device identity action failed; inspect sanitized worker diagnostics."
+            )
             action.result_data = {"rows": rows, "archive_id": None}
         finally:
             action.ended_at = utc_now()
@@ -990,10 +1057,14 @@ class DeviceIdentityLifecycleService:
                     after_data={
                         "status": action.status,
                         "source_device_id": (
-                            str(action.source_device_id) if action.source_device_id else None
+                            str(action.source_device_id)
+                            if action.source_device_id
+                            else None
                         ),
                         "target_device_id": (
-                            str(action.target_device_id) if action.target_device_id else None
+                            str(action.target_device_id)
+                            if action.target_device_id
+                            else None
                         ),
                         "counts": action.result_data.get("counts", {}),
                         "archive_id": action.result_data.get("archive_id"),
@@ -1009,7 +1080,7 @@ class DeviceIdentityLifecycleService:
         self,
         *,
         adapter_resolver,
-        cipher: DeviceSecretCipher,
+        cipher: DeviceSecretCipher | None,
         limit: int = 20,
     ) -> tuple[DeviceIdentityAction, ...]:
         return tuple(
