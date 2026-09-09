@@ -9,9 +9,9 @@ Status values:
 
 | ID | Capability | Baseline acceptance requirement | Status | Depends on |
 |---|---|---|---|---|
-| HF-001 | Secure authentication | Revocable sessions, password lifecycle, throttling, CSRF, audit | PLANNED | Database |
-| HF-002 | Multi-role RBAC | Deny by default; page, API, export, job, and object checks | PLANNED | HF-001 |
-| HF-003 | Web account administration | Create, edit, activate, deactivate, employee link, search | PLANNED | HF-001, HF-002 |
+| HF-001 | Secure authentication | Revocable sessions, password lifecycle, throttling, CSRF, audit | VERIFIED | Database |
+| HF-002 | Multi-role RBAC | Deny by default; page, API, export, job, and object checks | VERIFIED | HF-001 |
+| HF-003 | Web account administration | Create, edit, activate, deactivate, employee link, search | VERIFIED | HF-001, HF-002 |
 | HF-004 | Company profile | Configurable report identity and contact details | VERIFIED | Database |
 | HF-005 | Organization hierarchy | Directorate, department, section, unit CRUD with validation | VERIFIED | HF-002 |
 | HF-006 | Employee master | Full profile, status lifecycle, filters, export, soft restore | VERIFIED | HF-005 |
@@ -68,21 +68,21 @@ Status values:
 | HF-057 | Annual payroll summary | Employee annual totals and Excel export | VERIFIED | HF-054 |
 | HF-058 | Tax preview and projection | Explain projected tax and reconciliation | VERIFIED | HF-052, HF-054 |
 | HF-059 | Employee payroll self-service | Own payslips and annual totals only | VERIFIED | HF-056, HF-001 |
-| HF-060 | Administrative audit | Append-only, filterable, redacted before/after events | PLANNED | Database, HF-001 |
-| HF-061 | Operational dashboard | Device, pull, attendance, exception, and job indicators | PLANNED | HF-014, HF-036 |
-| HF-062 | Structured logs and metrics | Request/job correlation, alerts, no sensitive payloads | FOUNDATION | Foundation |
-| HF-063 | Database migrations | Versioned, transactional, fail deployment on failure | PLANNED | Database |
-| HF-064 | Backup and restore | Linux/Windows procedures and verified restore test | PLANNED | Database |
-| HF-065 | Deployment and services | Docker local; documented Linux web/worker services | FOUNDATION | Foundation |
-| HF-066 | CI quality gates | Compile, lint, tests, migration check, security checks | FOUNDATION | Foundation |
+| HF-060 | Administrative audit | Append-only, filterable, redacted before/after events | VERIFIED | Database, HF-001 |
+| HF-061 | Operational dashboard | Device, pull, attendance, exception, and job indicators | VERIFIED | HF-014, HF-036 |
+| HF-062 | Structured logs and metrics | Request/job correlation, alerts, no sensitive payloads | VERIFIED | Foundation |
+| HF-063 | Database migrations | Versioned, transactional, fail deployment on failure | VERIFIED | Database |
+| HF-064 | Backup and restore | Linux/Windows procedures and verified restore test | VERIFIED | Database |
+| HF-065 | Deployment and services | Docker local; documented Linux web/worker services | VERIFIED | Foundation |
+| HF-066 | CI quality gates | Compile, lint, tests, migration check, security checks | VERIFIED | Foundation |
 
 ## Completion accounting
 
 - Total baseline capabilities: 66
-- Verified capabilities: 56
-- Foundation-only capabilities: 3
-- Remaining planned/in-progress capabilities: 7
+- Verified capabilities: 66
+- Foundation-only capabilities: 0
+- Remaining planned/in-progress capabilities: 0
 
-The earlier 43/4/19 accounting was inconsistent with the row statuses; this count is derived from all 66 capability rows.
+The earlier 43/4/19 accounting was inconsistent with the row statuses. The payroll pass corrected it to 56/3/7; this final baseline pass verifies the remaining identity, audit, operations, migration, backup/restore, service, observability, and CI contracts.
 
 The matrix is updated in the same pull request that changes a feature's status. “Mostly works on my laptop” is not one of the status values, despite its historic popularity.
