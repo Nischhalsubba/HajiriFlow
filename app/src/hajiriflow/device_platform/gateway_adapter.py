@@ -6,12 +6,15 @@ from urllib.parse import urlencode, urlsplit
 from hajiriflow.device_platform.adapters import (
     DeviceCapabilities,
     DeviceDiagnostics,
+    DeviceIdentityBundle,
     DeviceUserRecord,
+    DeviceWriteResult,
     PullBatch,
     PunchRecord,
 )
 
 MAX_RESPONSE_BYTES = 4 * 1024 * 1024
+MAX_REQUEST_BYTES = 4 * 1024 * 1024
 
 
 def _timestamp(value: object, *, field: str) -> datetime:
@@ -26,27 +29,55 @@ def _timestamp(value: object, *, field: str) -> datetime:
     return parsed
 
 
-def _primitive_mapping(value: object, *, field: str) -> dict[str, str | int | float | bool | None]:
+def _primitive_mapping(
+    value: object,
+    *,
+    field: str,
+) -> dict[str, str | int | float | bool | None]:
     if value is None:
         return {}
     if not isinstance(value, dict):
         raise ValueError(f"gateway {field} must be an object")
     result: dict[str, str | int | float | bool | None] = {}
     for key, item in value.items():
-        if not isinstance(key, str) or not isinstance(item, (str, int, float, bool, type(None))):
+        if not isinstance(key, str) or not isinstance(
+            item,
+            (str, int, float, bool, type(None)),
+        ):
             raise ValueError(f"gateway {field} accepts primitive values only")
         result[key] = item
     return result
 
 
-class HajiriFlowGatewayAdapter:
-    """Supported adapter for the HajiriFlow Biometric Gateway HTTP v1 contract.
+def _identity_bundle(payload: object) -> DeviceIdentityBundle:
+    if not isinstance(payload, dict):
+        raise ValueError("gateway identity response must be an object")
+    external_user_id = payload.get("external_user_id")
+    if not isinstance(external_user_id, str) or not external_user_id.strip():
+        raise ValueError("gateway identity response requires external_user_id")
+    biometric_payload = payload.get("biometric_payload")
+    if biometric_payload is not None and not isinstance(biometric_payload, str):
+        raise ValueError("gateway biometric payload must be an opaque string")
+    return DeviceIdentityBundle(
+        external_user_id=external_user_id.strip(),
+        display_name=(str(payload["display_name"]) if payload.get("display_name") else None),
+        privilege=(str(payload["privilege"]) if payload.get("privilege") else None),
+        active=bool(payload.get("active", True)),
+        template_count=max(0, int(payload.get("template_count", 0))),
+        metadata={
+            key: value
+            for key, value in _primitive_mapping(
+                payload.get("metadata"),
+                field="metadata",
+            ).items()
+            if isinstance(value, (str, int, bool, type(None)))
+        },
+        biometric_payload=biometric_payload,
+    )
 
-    The gateway runs on the same LAN as biometric hardware and exposes a narrow,
-    vendor-neutral JSON surface to the worker. This keeps device networking out of
-    the web process while allowing reviewed gateway implementations to support
-    concrete hardware families without leaking biometric templates into HajiriFlow.
-    """
+
+class HajiriFlowGatewayAdapter:
+    """Supported adapter for the HajiriFlow Biometric Gateway HTTP v1 contract."""
 
     adapter_key = "hajiriflow_gateway_v1"
 
@@ -76,37 +107,80 @@ class HajiriFlowGatewayAdapter:
             pull_punches=True,
             historical_pulls=True,
             list_users=True,
-            push_users=False,
-            biometric_templates=False,
+            push_users=True,
+            biometric_templates=True,
+            archive_users=True,
+            restore_users=True,
             realtime_events=False,
         )
+
+    def _connection(self):
+        connection_class = (
+            http.client.HTTPSConnection
+            if self._scheme == "https"
+            else http.client.HTTPConnection
+        )
+        return connection_class(self._host, self._port, timeout=self._timeout)
+
+    def _headers(self) -> dict[str, str]:
+        headers = {
+            "Accept": "application/json",
+            "User-Agent": "HajiriFlow-Worker/1",
+        }
+        if self._bearer_token:
+            headers["Authorization"] = f"Bearer {self._bearer_token}"
+        return headers
+
+    @staticmethod
+    def _decode_response(response) -> object:
+        content_length = response.getheader("Content-Length")
+        if content_length and int(content_length) > MAX_RESPONSE_BYTES:
+            raise ValueError("gateway response exceeds the allowed size")
+        body = response.read(MAX_RESPONSE_BYTES + 1)
+        if len(body) > MAX_RESPONSE_BYTES:
+            raise ValueError("gateway response exceeds the allowed size")
+        if response.status < 200 or response.status >= 300:
+            raise ConnectionError(f"gateway returned HTTP {response.status}")
+        try:
+            return json.loads(body.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise ValueError("gateway returned invalid JSON") from exc
 
     def _request(self, path: str, *, query: dict[str, str] | None = None) -> object:
         request_path = f"{self._base_path}{path}"
         if query:
             request_path = f"{request_path}?{urlencode(query)}"
-        connection_class = (
-            http.client.HTTPSConnection if self._scheme == "https" else http.client.HTTPConnection
-        )
-        connection = connection_class(self._host, self._port, timeout=self._timeout)
-        headers = {"Accept": "application/json", "User-Agent": "HajiriFlow-Worker/1"}
-        if self._bearer_token:
-            headers["Authorization"] = f"Bearer {self._bearer_token}"
+        connection = self._connection()
         try:
-            connection.request("GET", request_path, headers=headers)
-            response = connection.getresponse()
-            content_length = response.getheader("Content-Length")
-            if content_length and int(content_length) > MAX_RESPONSE_BYTES:
-                raise ValueError("gateway response exceeds the allowed size")
-            body = response.read(MAX_RESPONSE_BYTES + 1)
-            if len(body) > MAX_RESPONSE_BYTES:
-                raise ValueError("gateway response exceeds the allowed size")
-            if response.status < 200 or response.status >= 300:
-                raise ConnectionError(f"gateway returned HTTP {response.status}")
-            try:
-                return json.loads(body.decode("utf-8"))
-            except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-                raise ValueError("gateway returned invalid JSON") from exc
+            connection.request("GET", request_path, headers=self._headers())
+            return self._decode_response(connection.getresponse())
+        finally:
+            connection.close()
+
+    def _post(
+        self,
+        path: str,
+        payload: dict,
+        *,
+        query: dict[str, str] | None = None,
+    ) -> object:
+        request_path = f"{self._base_path}{path}"
+        if query:
+            request_path = f"{request_path}?{urlencode(query)}"
+        body = json.dumps(payload, separators=(",", ":"), sort_keys=True).encode()
+        if len(body) > MAX_REQUEST_BYTES:
+            raise ValueError("gateway request exceeds the allowed size")
+        headers = self._headers()
+        headers["Content-Type"] = "application/json"
+        connection = self._connection()
+        try:
+            connection.request(
+                "POST",
+                request_path,
+                body=body,
+                headers=headers,
+            )
+            return self._decode_response(connection.getresponse())
         finally:
             connection.close()
 
@@ -126,7 +200,9 @@ class HajiriFlowGatewayAdapter:
             reachable=bool(payload.get("reachable", False)),
             observed_at=observed_at.astimezone(UTC),
             firmware_version=(
-                str(payload["firmware_version"]) if payload.get("firmware_version") else None
+                str(payload["firmware_version"])
+                if payload.get("firmware_version")
+                else None
             ),
             device_time=device_time.astimezone(UTC) if device_time else None,
             message=str(payload["message"])[:500] if payload.get("message") else None,
@@ -196,25 +272,57 @@ class HajiriFlowGatewayAdapter:
             raise ValueError("gateway user response must contain a users list")
         users: list[DeviceUserRecord] = []
         for raw in payload["users"]:
-            if not isinstance(raw, dict):
-                raise ValueError("gateway user entries must be objects")
-            external_user_id = raw.get("external_user_id")
-            if not isinstance(external_user_id, str) or not external_user_id.strip():
-                raise ValueError("gateway user requires external_user_id")
+            bundle = _identity_bundle(raw)
             users.append(
                 DeviceUserRecord(
-                    external_user_id=external_user_id.strip(),
-                    display_name=(str(raw["display_name"]) if raw.get("display_name") else None),
-                    privilege=(str(raw["privilege"]) if raw.get("privilege") else None),
-                    active=bool(raw.get("active", True)),
-                    template_count=max(0, int(raw.get("template_count", 0))),
-                    metadata={
-                        key: value
-                        for key, value in _primitive_mapping(
-                            raw.get("metadata"), field="metadata"
-                        ).items()
-                        if isinstance(value, (str, int, bool, type(None)))
-                    },
+                    external_user_id=bundle.external_user_id,
+                    display_name=bundle.display_name,
+                    privilege=bundle.privilege,
+                    active=bundle.active,
+                    template_count=bundle.template_count,
+                    metadata=bundle.metadata,
                 )
             )
         return tuple(users)
+
+    def push_identity(
+        self,
+        bundle: DeviceIdentityBundle,
+        *,
+        dry_run: bool,
+    ) -> DeviceWriteResult:
+        payload = {
+            "external_user_id": bundle.external_user_id,
+            "display_name": bundle.display_name,
+            "privilege": bundle.privilege,
+            "active": bundle.active,
+            "template_count": bundle.template_count,
+            "metadata": bundle.metadata,
+            "biometric_payload": bundle.biometric_payload,
+        }
+        response = self._post(
+            "/v1/identity/push",
+            payload,
+            query={"dry_run": "true" if dry_run else "false"},
+        )
+        if not isinstance(response, dict):
+            raise ValueError("gateway identity write response must be an object")
+        code = response.get("code")
+        if not isinstance(code, str) or not code:
+            raise ValueError("gateway identity write response requires a code")
+        message = response.get("message")
+        return DeviceWriteResult(
+            accepted=bool(response.get("accepted", False)),
+            code=code[:100],
+            message=str(message)[:500] if message is not None else None,
+        )
+
+    def export_identity(self, external_user_id: str) -> DeviceIdentityBundle:
+        payload = self._post(
+            "/v1/identity/export",
+            {"external_user_id": external_user_id},
+        )
+        bundle = _identity_bundle(payload)
+        if bundle.external_user_id != external_user_id:
+            raise ValueError("gateway exported an unexpected device identity")
+        return bundle

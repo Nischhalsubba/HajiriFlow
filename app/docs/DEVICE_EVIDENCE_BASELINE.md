@@ -4,15 +4,15 @@ HajiriFlow keeps biometric-device networking outside the web application. The we
 
 ## Supported adapter boundary
 
-The baseline includes `hajiriflow_gateway_v1`, a vendor-neutral HTTP adapter intended for a HajiriFlow Biometric Gateway running on the same network as physical devices. The gateway contract exposes only diagnostics, attendance punches, and user inventory. HajiriFlow does not request or expose biometric templates through this adapter.
+The baseline includes `hajiriflow_gateway_v1`, a vendor-neutral HTTP adapter intended for a HajiriFlow Biometric Gateway running on the same network as physical devices. Its ordinary diagnostics, attendance-pull, and user-inventory calls never request biometric templates. Template-bearing identity data is available only through the separately governed preview/approval/archive lifecycle described in `DEVICE_IDENTITY_LIFECYCLE.md`; it is not exposed through attendance evidence APIs, logs, or ordinary exports.
 
 A registered gateway endpoint must be an HTTP or HTTPS origin/path without embedded credentials, query strings, or fragments. Optional bearer credentials are encrypted in `device_credentials`. Deployments configure a versioned Fernet keyring through `HAJIRIFLOW_DEVICE_SECRET_ACTIVE_KEY_ID` and `HAJIRIFLOW_DEVICE_SECRET_KEYS_JSON`; key material is never stored in device rows or returned by APIs.
 
 The worker fails closed when the adapter key is unknown, the keyring is unavailable, the active credential cannot be decrypted, or a credential contains unsupported fields.
 
-## Gateway HTTP v1 contract
+## Gateway HTTP v1 evidence contract
 
-The worker uses the following read-only gateway calls:
+The worker uses the following read-only gateway calls for attendance evidence and inventory:
 
 - `GET /v1/diagnostics` returns reachability, observed time, optional firmware/device time, a sanitized message, and primitive metadata.
 - `GET /v1/punches?cursor=...` returns a bounded page of punches and an optional next cursor.
@@ -23,7 +23,7 @@ Responses larger than 4 MiB are rejected. Punch timestamps must be timezone-awar
 
 ## Scheduling and commands
 
-Scheduled pulls use the PostgreSQL `devices.pull_interval_seconds` value. A PostgreSQL advisory lock prevents overlapping pulls for the same device, and every attempt is isolated so one failing device cannot stop another.
+Scheduled pulls use the PostgreSQL `devices.pull_interval_seconds` value. A PostgreSQL advisory lock prevents overlapping pulls for the same device, and every attempt is isolated so one failing device cannot stop others.
 
 Diagnostics, **Pull now**, and historical date-range pulls are never executed by FastAPI request handlers. The API writes a `device_operations` row with `pending` status and returns `202 Accepted`. The worker claims pending operations and records `running`, `succeeded`, `failed`, or `skipped` outcomes. Historical pulls are limited to 366 days and 100 pagination batches, reject cursor cycles, and use bounded retries.
 
@@ -37,7 +37,7 @@ Unlinked punches remain in the evidence table. The unlinked review endpoint surf
 
 ## Authorization
 
-Device reads require `device.read`. Registry/runtime/credential changes require `device.manage`. Pull and diagnostics commands require `device.pull`. Employee-device links require `device.mapping.manage`. Every protected action is organization-scoped, mutating browser requests require CSRF, and credential values are never returned after write.
+Device reads require `device.read`. Registry/runtime/credential changes require `device.manage`. Pull and diagnostics commands require `device.pull`. Employee-device links and reviewed identity lifecycle actions require `device.mapping.manage`. Every protected action is organization-scoped, mutating browser requests require CSRF, and credential values are never returned after write.
 
 ## Operational verification
 
