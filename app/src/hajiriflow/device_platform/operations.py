@@ -6,11 +6,14 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from hajiriflow.db.models.device import Device, DevicePullSession
-from hajiriflow.db.models.device_baseline import DeviceOperation, DeviceRuntimeConfiguration
+from hajiriflow.db.models.device_baseline import (
+    DeviceOperation,
+    DeviceRuntimeConfiguration,
+)
 from hajiriflow.db.models.identity import AuditEvent
 from hajiriflow.device_platform.adapters import DeviceAdapter, PullBatch
 from hajiriflow.device_platform.pull import DevicePullCoordinator, device_pull_lock
-from hajiriflow.device_platform.service import DevicePlatformService, SENSITIVE_EVIDENCE_TERMS
+from hajiriflow.device_platform.service import SENSITIVE_EVIDENCE_TERMS, DevicePlatformService
 
 AdapterResolver = Callable[[Device], DeviceAdapter | None]
 MAX_HISTORICAL_DAYS = 366
