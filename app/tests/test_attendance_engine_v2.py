@@ -9,7 +9,6 @@ from sqlalchemy import select
 
 from hajiriflow.attendance.engine import AttendanceEngineService
 from hajiriflow.attendance.manual import ManualAttendanceService
-from hajiriflow.db.models.attendance import AttendanceRecord
 from hajiriflow.db.models.attendance_baseline import (
     AttendanceDayRemark,
     AttendanceImportRow,
@@ -442,7 +441,9 @@ def test_day_remarks_are_append_only() -> None:
             created_by=uuid4(),
         )
         session.flush()
-        assert session.scalar(select(AttendanceDayRemark).where(AttendanceDayRemark.id == remark.id))
+        assert session.scalar(
+            select(AttendanceDayRemark).where(AttendanceDayRemark.id == remark.id)
+        )
         remark.remark = "Mutated"
         with pytest.raises(RuntimeError, match="append-only"):
             session.flush()
