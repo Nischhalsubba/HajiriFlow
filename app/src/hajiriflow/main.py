@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from hajiriflow import __version__
 from hajiriflow.api.attendance import router as attendance_router
+from hajiriflow.api.attendance_baseline import router as attendance_baseline_router
 from hajiriflow.api.biometric import router as biometric_router
 from hajiriflow.api.calendar_leave import router as calendar_leave_router
 from hajiriflow.api.calendar_leave_baseline import router as calendar_leave_baseline_router
@@ -62,6 +63,7 @@ def create_app() -> FastAPI:
     app.include_router(calendar_leave_router)
     app.include_router(calendar_leave_baseline_router)
     app.include_router(attendance_router)
+    app.include_router(attendance_baseline_router)
     app.include_router(payroll_router)
     app.include_router(device_router)
     app.include_router(device_baseline_router)

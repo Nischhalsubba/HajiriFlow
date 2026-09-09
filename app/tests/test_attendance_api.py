@@ -77,7 +77,7 @@ def _create_employee(client: TestClient, csrf: str, organization_id: str) -> dic
     return response.json()
 
 
-def test_attendance_api_is_org_scoped_and_corrections_require_checker() -> None:
+def test_attendance_api_routes_v2_corrections_through_manual_events() -> None:
     _seed_admin(
         username="system.admin",
         password="system-admin-password-123",
@@ -133,7 +133,7 @@ def test_attendance_api_is_org_scoped_and_corrections_require_checker() -> None:
         record = calculated.json()
         assert record["status"] == "absent"
         assert record["source_revision"] == 1
-        assert record["calculation_version"] == "attendance-v1"
+        assert record["calculation_version"] == "attendance-v2"
 
         missing_csrf = client.post(
             f"/api/v1/organizations/{primary['id']}/attendance/"
@@ -142,7 +142,7 @@ def test_attendance_api_is_org_scoped_and_corrections_require_checker() -> None:
         )
         assert missing_csrf.status_code == 403
 
-        requested = client.post(
+        legacy = client.post(
             f"/api/v1/organizations/{primary['id']}/attendance/"
             f"records/{record['id']}/corrections",
             headers={"X-CSRF-Token": maker_csrf},
@@ -153,13 +153,31 @@ def test_attendance_api_is_org_scoped_and_corrections_require_checker() -> None:
                 "proposed_check_out_at": "2026-09-07T11:15:00Z",
             },
         )
-        assert requested.status_code == 201, requested.text
-        correction = requested.json()
-        assert correction["status"] == "pending"
+        assert legacy.status_code == 409, legacy.text
+        assert "additive manual events" in legacy.json()["detail"]
+
+        manual_events = []
+        for event_type, event_time in (
+            ("in", "2026-09-07T03:15:00Z"),
+            ("out", "2026-09-07T11:15:00Z"),
+        ):
+            requested = client.post(
+                f"/api/v1/organizations/{primary['id']}/attendance-v2/manual-events",
+                headers={"X-CSRF-Token": maker_csrf},
+                json={
+                    "employee_id": employee["id"],
+                    "event_time": event_time,
+                    "event_type": event_type,
+                    "reason": "Approved field evidence was received.",
+                    "evidence_note": "Supervisor verified the attendance event.",
+                },
+            )
+            assert requested.status_code == 201, requested.text
+            manual_events.append(requested.json())
 
         self_approval = client.post(
-            f"/api/v1/organizations/{primary['id']}/attendance/"
-            f"corrections/{correction['id']}/decision",
+            f"/api/v1/organizations/{primary['id']}/attendance-v2/"
+            f"manual-events/{manual_events[0]['id']}/decision",
             headers={"X-CSRF-Token": maker_csrf},
             json={"approve": True, "reason": "Evidence checked."},
         )
@@ -175,15 +193,26 @@ def test_attendance_api_is_org_scoped_and_corrections_require_checker() -> None:
             "attendance.checker",
             "attendance-checker-password-123",
         )
-        approved = client.post(
-            f"/api/v1/organizations/{primary['id']}/attendance/"
-            f"corrections/{correction['id']}/decision",
+        for item in manual_events:
+            approved = client.post(
+                f"/api/v1/organizations/{primary['id']}/attendance-v2/"
+                f"manual-events/{item['id']}/decision",
+                headers={"X-CSRF-Token": checker_csrf},
+                json={"approve": True, "reason": "Evidence checked."},
+            )
+            assert approved.status_code == 200, approved.text
+            assert approved.json()["status"] == "approved"
+            assert approved.json()["decided_by"] is not None
+
+        recalculated = client.post(
+            f"/api/v1/organizations/{primary['id']}/attendance-v2/engine/"
+            f"{employee['id']}/2026-09-07/calculate",
             headers={"X-CSRF-Token": checker_csrf},
-            json={"approve": True, "reason": "Evidence checked."},
         )
-        assert approved.status_code == 200, approved.text
-        assert approved.json()["status"] == "approved"
-        assert approved.json()["decided_by"] is not None
+        assert recalculated.status_code == 200, recalculated.text
+        assert recalculated.json()["base_status"] == "present"
+        assert recalculated.json()["source_revision"] == 2
+        assert recalculated.json()["engine_version"] == "attendance-v2"
 
         records = client.get(
             f"/api/v1/organizations/{primary['id']}/attendance/records",
@@ -200,7 +229,6 @@ def test_attendance_api_is_org_scoped_and_corrections_require_checker() -> None:
         assert history.status_code == 200, history.text
         assert [item["event_type"] for item in history.json()] == [
             "calculated",
-            "correction_requested",
-            "correction_approved",
+            "recalculated",
         ]
-        assert history.json()[-1]["correction_id"] == correction["id"]
+        assert all(item["correction_id"] is None for item in history.json())
