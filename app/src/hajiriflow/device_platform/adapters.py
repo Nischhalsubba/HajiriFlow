@@ -6,6 +6,7 @@ from typing import Protocol, runtime_checkable
 @dataclass(frozen=True, slots=True)
 class DeviceCapabilities:
     pull_punches: bool = True
+    historical_pulls: bool = False
     list_users: bool = False
     push_users: bool = False
     biometric_templates: bool = False
