@@ -74,6 +74,7 @@ class HajiriFlowGatewayAdapter:
     def capabilities(self) -> DeviceCapabilities:
         return DeviceCapabilities(
             pull_punches=True,
+            historical_pulls=True,
             list_users=True,
             push_users=False,
             biometric_templates=False,
