@@ -18,6 +18,7 @@ from hajiriflow.api.health import router as health_router
 from hajiriflow.api.identity import router as identity_router
 from hajiriflow.api.middleware import RequestContextMiddleware, SecurityHeadersMiddleware
 from hajiriflow.api.payroll import router as payroll_router
+from hajiriflow.api.payroll_baseline import router as payroll_baseline_router
 from hajiriflow.api.reporting import router as reporting_router
 from hajiriflow.api.role_lifecycle import router as role_lifecycle_router
 from hajiriflow.api.workforce import router as workforce_router
@@ -65,6 +66,7 @@ def create_app() -> FastAPI:
     app.include_router(attendance_router)
     app.include_router(attendance_baseline_router)
     app.include_router(payroll_router)
+    app.include_router(payroll_baseline_router)
     app.include_router(device_router)
     app.include_router(device_baseline_router)
     app.include_router(device_inventory_router)
