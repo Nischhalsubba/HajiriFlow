@@ -17,13 +17,7 @@ from hajiriflow.api.dependencies import (
 )
 from hajiriflow.calendar_leave.bs_dates import BsDateService
 from hajiriflow.core.config import Settings, get_settings
-from hajiriflow.db.models.device import (
-    Device,
-    DeviceCredential,
-    DeviceEmployeeMapping,
-    DeviceUser,
-    RawPunch,
-)
+from hajiriflow.db.models.device import Device, DeviceEmployeeMapping, DeviceUser, RawPunch
 from hajiriflow.db.models.device_baseline import DeviceOperation
 from hajiriflow.db.models.identity import AuditEvent
 from hajiriflow.device_platform.operations import DeviceOperationService
@@ -157,7 +151,10 @@ def get_device_operation(
 ) -> DeviceOperationView:
     item = session.get(DeviceOperation, operation_id)
     if not item or item.organization_id != organization_id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="device operation not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="device operation not found",
+        )
     return _operation_view(item)
 
 
@@ -178,7 +175,9 @@ def list_unlinked_punches(
         _device(session, organization_id, device_id)
         query = query.where(RawPunch.device_id == device_id)
     punches = session.scalars(
-        query.order_by(RawPunch.occurred_at.desc(), RawPunch.id).offset(offset).limit(limit * 5)
+        query.order_by(RawPunch.occurred_at.desc(), RawPunch.id)
+        .offset(offset)
+        .limit(limit * 5)
     ).all()
     results: list[UnlinkedPunchView] = []
     for punch in punches:
@@ -272,7 +271,10 @@ def update_device_registration(
         session.commit()
     except IntegrityError as exc:
         session.rollback()
-        raise HTTPException(status_code=409, detail="device code or serial number already exists") from exc
+        raise HTTPException(
+            status_code=409,
+            detail="device code or serial number already exists",
+        ) from exc
     return DeviceRegistrationView(
         id=item.id,
         status=item.status,
