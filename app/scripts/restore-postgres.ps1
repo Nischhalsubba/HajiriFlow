@@ -26,6 +26,6 @@ if (Test-Path $checksum) {
     if ($actual -ne $expected) { throw "Backup checksum verification failed." }
 }
 
-Get-Content -AsByteStream -Raw $env:HAJIRIFLOW_RESTORE_BACKUP_PATH | & pg_restore --dbname=$env:HAJIRIFLOW_RESTORE_TARGET_URL --clean --if-exists --no-owner --no-acl
+& pg_restore --dbname=$env:HAJIRIFLOW_RESTORE_TARGET_URL --clean --if-exists --no-owner --no-acl $env:HAJIRIFLOW_RESTORE_BACKUP_PATH
 if ($LASTEXITCODE -ne 0) { throw "pg_restore failed." }
 Write-Output "HajiriFlow PostgreSQL restore completed into the explicitly configured target."
