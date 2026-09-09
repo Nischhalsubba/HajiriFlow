@@ -26,6 +26,8 @@ The baseline includes:
 - the existing attendance-to-salary worksheet over immutable payroll-line snapshots
 - employee self-service for the signed-in employee's own attendance and punch drilldown only
 
+Existing report URLs remain compatible while their attendance semantics now come from the v2 result model. The payroll worksheet stays on the same reporting router and continues to expose immutable payroll-line snapshots rather than recalculating salary in a GET request.
+
 Employee self-service is authorized by `attendance.self.read`; it never accepts an arbitrary employee identifier. Organization report exports require `attendance.export`. The migration and identity bootstrap both provision these permissions for existing and fresh installations.
 
 ## Exports
