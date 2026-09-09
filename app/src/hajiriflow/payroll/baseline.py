@@ -3,7 +3,7 @@ from datetime import UTC, date, datetime
 from decimal import ROUND_HALF_UP, Decimal
 from uuid import UUID
 
-from sqlalchemy import and_, func, or_, select
+from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import Session
 
 from hajiriflow.db.models.attendance import AttendanceRecord
@@ -29,7 +29,6 @@ from hajiriflow.identity.permissions import PermissionGrant, has_permission
 from hajiriflow.payroll.service import (
     PAYROLL_APPROVE,
     PAYROLL_MANAGE,
-    PAYROLL_READ,
     PayrollService,
 )
 from hajiriflow.reporting.exports import pdf_bytes, workbook_bytes
@@ -968,7 +967,11 @@ class PayrollBaselineService:
                     {
                         "sequence": slab.sequence,
                         "lower_bound": str(slab.lower_bound),
-                        "upper_bound": str(slab.upper_bound) if slab.upper_bound is not None else None,
+                        "upper_bound": (
+                            str(slab.upper_bound)
+                            if slab.upper_bound is not None
+                            else None
+                        ),
                         "rate": str(slab.rate),
                     }
                     for slab in slabs
@@ -1187,7 +1190,8 @@ class PayrollBaselineService:
                 PayrollPeriodContext,
                 PayrollPeriodContext.period_id == PayrollPeriod.id,
             ).where(PayrollPeriodContext.fiscal_year_id == fiscal_year_id)
-        return list(self.session.execute(query.order_by(PayrollPeriod.starts_on, PayrollLine.id)).all())
+        ordered = query.order_by(PayrollPeriod.starts_on, PayrollLine.id)
+        return list(self.session.execute(ordered).all())
 
     def annual_summary(
         self,
@@ -1321,7 +1325,13 @@ class PayrollBaselineService:
         return pdf_bytes(
             title="HajiriFlow payslip",
             headers=("Gross", "Deductions", "Tax", "Net", "Currency"),
-            rows=((payload["gross"], payload["deduction_total"], payload["tax"], payload["net"], payload["currency"]),),
+            rows=((
+                payload["gross"],
+                payload["deduction_total"],
+                payload["tax"],
+                payload["net"],
+                payload["currency"],
+            ),),
             metadata=(
                 ("Employee", employee.get("display_name", "")),
                 ("Employee code", employee.get("employee_code", "")),

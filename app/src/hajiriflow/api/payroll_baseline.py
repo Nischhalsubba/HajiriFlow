@@ -28,6 +28,7 @@ from hajiriflow.db.models.payroll_baseline import (
     TaxSlab,
     TaxSlabSet,
 )
+from hajiriflow.db.models.workforce import Employee
 from hajiriflow.payroll.baseline import PayrollBaselineService
 from hajiriflow.reporting.exports import pdf_bytes
 
@@ -918,7 +919,7 @@ def _self_employee(identity: RequestIdentity, organization_id: UUID, session: Se
     employee_id = identity.principal.user.employee_id
     if employee_id is None:
         raise HTTPException(status_code=403, detail="account is not linked to an employee")
-    employee = session.get(__import__("hajiriflow.db.models.workforce", fromlist=["Employee"]).Employee, employee_id)
+    employee = session.get(Employee, employee_id)
     if employee is None or employee.organization_id != organization_id:
         raise HTTPException(status_code=403, detail="employee link is outside organization scope")
     return employee_id

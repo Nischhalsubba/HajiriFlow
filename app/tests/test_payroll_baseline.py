@@ -8,7 +8,6 @@ from hajiriflow.db.models.attendance import AttendanceRecord
 from hajiriflow.db.models.attendance_baseline import AttendanceRecordDetail
 from hajiriflow.db.models.identity import UserAccount
 from hajiriflow.db.models.payroll import PayrollLine
-from hajiriflow.db.models.payroll_baseline import EarningHead
 from hajiriflow.db.models.workforce import CompanyProfile, Employee
 from hajiriflow.db.session import get_session_factory
 from hajiriflow.identity.permissions import FULL_ACCESS, PermissionGrant
