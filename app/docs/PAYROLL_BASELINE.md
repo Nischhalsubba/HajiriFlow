@@ -2,6 +2,8 @@
 
 HajiriFlow payroll is a configurable calculation and approval system. It does not hard-code a tax schedule. A payroll administrator records the applicable fiscal-year policy, and a separate authorized approver confirms it before payroll can use it.
 
+The persistent policy and review schema is introduced by Alembic revision `20260909_0016`.
+
 ## Authority chain
 
 1. Create a Bikram Sambat fiscal year with its exact AD date boundaries.
