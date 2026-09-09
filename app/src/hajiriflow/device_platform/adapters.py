@@ -10,6 +10,8 @@ class DeviceCapabilities:
     list_users: bool = False
     push_users: bool = False
     biometric_templates: bool = False
+    archive_users: bool = False
+    restore_users: bool = False
     realtime_events: bool = False
 
 
@@ -41,6 +43,24 @@ class DeviceUserRecord:
     active: bool = True
     template_count: int = 0
     metadata: dict[str, str | int | bool | None] = field(default_factory=dict)
+
+
+@dataclass(frozen=True, slots=True)
+class DeviceIdentityBundle:
+    external_user_id: str
+    display_name: str | None = None
+    privilege: str | None = None
+    active: bool = True
+    template_count: int = 0
+    metadata: dict[str, str | int | bool | None] = field(default_factory=dict)
+    biometric_payload: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class DeviceWriteResult:
+    accepted: bool
+    code: str
+    message: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
