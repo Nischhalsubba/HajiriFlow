@@ -48,10 +48,10 @@ def _minutes(delta: timedelta) -> int:
     return max(0, int(delta.total_seconds() // 60))
 
 
-def _aware(value: datetime, timezone: ZoneInfo) -> datetime:
+def _as_utc(value: datetime) -> datetime:
     if value.tzinfo is None:
-        return value.replace(tzinfo=timezone)
-    return value
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
 
 
 class AttendanceEngineService:
@@ -205,7 +205,7 @@ class AttendanceEngineService:
         )
         return [
             TimelineEvent(
-                occurred_at=item.occurred_at,
+                occurred_at=_as_utc(item.occurred_at),
                 event_type=item.punch_kind,
                 source="device",
                 source_id=item.id,
@@ -234,7 +234,7 @@ class AttendanceEngineService:
         )
         return [
             TimelineEvent(
-                occurred_at=item.event_time,
+                occurred_at=_as_utc(item.event_time),
                 event_type=item.event_type,
                 source="manual",
                 source_id=item.id,
@@ -481,13 +481,13 @@ class AttendanceEngineService:
         early_departure_minutes = 0
         late_departure_minutes = 0
         if shift and check_in_at is not None:
-            local_in = _aware(check_in_at, timezone).astimezone(timezone)
+            local_in = _as_utc(check_in_at).astimezone(timezone)
             late_minutes = _minutes(
                 local_in - (scheduled_start + timedelta(minutes=grace_minutes))
             )
             early_arrival_minutes = _minutes(scheduled_start - local_in)
         if shift and check_out_at is not None:
-            local_out = _aware(check_out_at, timezone).astimezone(timezone)
+            local_out = _as_utc(check_out_at).astimezone(timezone)
             early_departure_minutes = _minutes(
                 (scheduled_end - timedelta(minutes=grace_minutes)) - local_out
             )
