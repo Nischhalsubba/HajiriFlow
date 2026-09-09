@@ -1,5 +1,5 @@
 import json
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 import pytest
@@ -21,7 +21,10 @@ from hajiriflow.device_platform.adapters import (
 )
 from hajiriflow.device_platform.gateway_adapter import HajiriFlowGatewayAdapter
 from hajiriflow.device_platform.operations import DeviceOperationService
-from hajiriflow.device_platform.runtime import resolve_registered_adapter
+from hajiriflow.device_platform.runtime import (
+    build_device_secret_cipher,
+    resolve_registered_adapter,
+)
 from hajiriflow.device_platform.service import DevicePlatformService
 from hajiriflow.identity.bootstrap import seed_identity_catalog
 from hajiriflow.identity.permissions import ScopeType
@@ -212,7 +215,10 @@ def test_gateway_adapter_parses_supported_contract(monkeypatch) -> None:
     )
     assert historical.punches[0].device_user_identifier == "42"
     assert adapter.list_users()[0].external_user_id == "42"
-    assert any("start_at=" in path and "end_at=" in path for _, path, _ in FakeConnection.requests)
+    assert any(
+        "start_at=" in path and "end_at=" in path
+        for _, path, _ in FakeConnection.requests
+    )
     assert all(
         headers.get("Authorization") == "Bearer test-bearer-token"
         for _, _, headers in FakeConnection.requests
@@ -232,10 +238,6 @@ def test_registered_adapter_decrypts_gateway_credential(database) -> None:
             device_secret_active_key_id="k1",
             device_secret_keys_json=json.dumps({"k1": key}),
         )
-        cipher = DeviceOperationService(session)
-        del cipher
-        from hajiriflow.device_platform.runtime import build_device_secret_cipher
-
         encrypted = build_device_secret_cipher(settings)
         DevicePlatformService(session).rotate_credential(
             device=device,
@@ -444,14 +446,15 @@ def test_device_operations_are_tenant_scoped_and_queued() -> None:
         assert queued.status_code == 202, queued.text
         assert queued.json()["status"] == "pending"
 
+        operation_id = queued.json()["id"]
         cross_tenant = client.get(
-            f"/api/v1/organizations/{other['id']}/devices/operations/{queued.json()['id']}"
+            f"/api/v1/organizations/{other['id']}/devices/operations/{operation_id}"
         )
         assert cross_tenant.status_code == 403
 
         session = get_session_factory()()
         try:
-            stored = session.get(DeviceOperation, UUID(queued.json()["id"]))
+            stored = session.get(DeviceOperation, UUID(operation_id))
             assert stored is not None
             assert stored.status == "pending"
         finally:
