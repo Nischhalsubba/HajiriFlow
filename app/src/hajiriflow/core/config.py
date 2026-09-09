@@ -1,9 +1,10 @@
+import json
 from functools import lru_cache
 from typing import Literal
 from urllib.parse import urlparse
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 KNOWN_UNSAFE_SESSION_SECRETS = {
@@ -37,6 +38,8 @@ class Settings(BaseSettings):
     login_max_attempts: int = Field(default=5, ge=2, le=50)
     worker_poll_seconds: int = Field(default=30, ge=5, le=3600)
     device_pull_max_attempts: int = Field(default=3, ge=1, le=10)
+    device_secret_active_key_id: str = ""
+    device_secret_keys_json: SecretStr = SecretStr("")
     session_cookie_name: str = "hajiriflow_session"
     csrf_cookie_name: str = "hajiriflow_csrf"
     cookie_secure: bool = False
@@ -53,6 +56,22 @@ class Settings(BaseSettings):
             for origin in self.cors_origins.split(",")
             if origin.strip()
         ]
+
+    @property
+    def device_secret_keys(self) -> dict[str, str]:
+        raw = self.device_secret_keys_json.get_secret_value().strip()
+        if not raw:
+            return {}
+        try:
+            payload = json.loads(raw)
+        except json.JSONDecodeError as exc:
+            raise ValueError("device-secret keyring must be valid JSON") from exc
+        if not isinstance(payload, dict) or not all(
+            isinstance(key, str) and isinstance(value, str) and key and value
+            for key, value in payload.items()
+        ):
+            raise ValueError("device-secret keyring must map non-empty key IDs to keys")
+        return payload
 
     @field_validator("database_url")
     @classmethod

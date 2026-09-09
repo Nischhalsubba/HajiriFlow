@@ -1,22 +1,30 @@
 import logging
 import time
+from collections.abc import Callable
 
-from hajiriflow.core.config import get_settings
+from sqlalchemy.orm import Session
+
+from hajiriflow.core.config import Settings, get_settings
 from hajiriflow.db.models.device import Device
 from hajiriflow.db.session import get_session_factory
 from hajiriflow.device_platform.adapters import DeviceAdapter
+from hajiriflow.device_platform.operations import DeviceOperationService
+from hajiriflow.device_platform.runtime import resolve_registered_adapter
 from hajiriflow.worker.scheduler import DevicePullScheduler
 
 
-def resolve_adapter(_device: Device) -> DeviceAdapter | None:
-    """Return an adapter only when concrete supported hardware is registered.
+def adapter_resolver(
+    session: Session,
+    settings: Settings,
+) -> Callable[[Device], DeviceAdapter | None]:
+    def resolve(device: Device) -> DeviceAdapter | None:
+        return resolve_registered_adapter(
+            session=session,
+            settings=settings,
+            device=device,
+        )
 
-    The repository deliberately ships no vendor adapter. A deployment that supports
-    actual hardware must replace/register this resolver with a reviewed adapter rather
-    than guessing a device protocol from vendor/model strings.
-    """
-
-    return None
+    return resolve
 
 
 def main() -> None:
@@ -28,22 +36,27 @@ def main() -> None:
     while True:
         session = get_session_factory()()
         try:
-            results = DevicePullScheduler(
+            resolve = adapter_resolver(session, settings)
+            operation_results = DeviceOperationService(
                 session,
-                adapter_resolver=resolve_adapter,
+                max_attempts=settings.device_pull_max_attempts,
+            ).process_pending(adapter_resolver=resolve)
+            scheduled_results = DevicePullScheduler(
+                session,
+                adapter_resolver=resolve,
                 max_attempts=settings.device_pull_max_attempts,
                 logger=logger,
             ).run_once()
             session.commit()
-            if results:
+            if operation_results or scheduled_results:
                 status_counts: dict[str, int] = {}
-                for result in results:
+                for result in (*operation_results, *scheduled_results):
                     status_counts[result.status] = status_counts.get(result.status, 0) + 1
-                logger.info("Device scheduler cycle completed: statuses=%s", status_counts)
+                logger.info("Device worker cycle completed: statuses=%s", status_counts)
         except Exception as exc:
             session.rollback()
             logger.error(
-                "Device scheduler cycle failed: error_type=%s",
+                "Device worker cycle failed: error_type=%s",
                 type(exc).__name__,
             )
         finally:
