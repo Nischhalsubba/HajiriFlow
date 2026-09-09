@@ -1,6 +1,5 @@
 import json
 from datetime import date
-from uuid import UUID
 
 import pytest
 from fastapi.testclient import TestClient
@@ -11,7 +10,6 @@ from hajiriflow.db.models.device import Device
 from hajiriflow.db.models.identity import AuditEvent, UserAccount
 from hajiriflow.db.models.workforce import CompanyProfile, Employee
 from hajiriflow.db.session import get_session_factory
-from hajiriflow.identity.admin import IdentityAdminService
 from hajiriflow.identity.bootstrap import ROLES, seed_identity_catalog
 from hajiriflow.identity.permissions import ScopeType
 from hajiriflow.identity.service import IdentityService
@@ -228,7 +226,11 @@ def test_operations_dashboard_is_org_scoped_sanitized_and_role_bounded() -> None
     session.close()
 
     with TestClient(create_app()) as client:
-        _login(client, "final.employee", "final-employee-password-123")
+        employee_csrf = _login(
+            client,
+            "final.employee",
+            "final-employee-password-123",
+        )
         denied = client.get(
             f"/api/v1/organizations/{ids['organization_id']}/operations/dashboard"
         )
@@ -242,7 +244,11 @@ def test_operations_dashboard_is_org_scoped_sanitized_and_role_bounded() -> None
         )
         assert self_payroll.status_code == 200
 
-        client.post("/api/v1/auth/logout", headers={"X-CSRF-Token": client.cookies.get("hajiriflow_csrf", "")})
+        logout = client.post(
+            "/api/v1/auth/logout",
+            headers={"X-CSRF-Token": employee_csrf},
+        )
+        assert logout.status_code == 204
         _login(client, "final.workforce", "final-workforce-password-123")
         allowed = client.get(
             f"/api/v1/organizations/{ids['organization_id']}/operations/dashboard"
@@ -264,7 +270,20 @@ def test_role_catalog_keeps_admin_and_self_service_boundaries_separate() -> None
     assert "payroll.export" not in employee_permissions
     assert "device.pull" not in employee_permissions
     assert "operations.read" not in employee_permissions
-    assert {"employee.export", "attendance.export", "device.pull", "operations.read"} <= workforce_permissions
+    workforce_required = {
+        "employee.export",
+        "attendance.export",
+        "device.pull",
+        "operations.read",
+    }
+    assert workforce_required <= workforce_permissions
     assert "payroll.manage" not in workforce_permissions
-    assert {"payroll.read", "payroll.manage", "payroll.approve", "payroll.export", "operations.read"} <= payroll_permissions
+    payroll_required = {
+        "payroll.read",
+        "payroll.manage",
+        "payroll.approve",
+        "payroll.export",
+        "operations.read",
+    }
+    assert payroll_required <= payroll_permissions
     assert "identity.user.manage" not in payroll_permissions
