@@ -1,5 +1,6 @@
 from collections import defaultdict
 from datetime import UTC, date, datetime, time, timedelta
+from typing import cast
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
@@ -219,14 +220,10 @@ class AttendanceReportingService:
         work_date: date,
         context: dict[str, object],
     ) -> str:
-        duties = context["duties"]
-        leaves = context["leaves"]
-        holidays = context["holidays"]
-        weekends = context["weekends"]
-        assert isinstance(duties, dict)
-        assert isinstance(leaves, dict)
-        assert isinstance(holidays, dict)
-        assert isinstance(weekends, set)
+        duties = cast(dict[UUID, list[FieldDutyRequest]], context["duties"])
+        leaves = cast(dict[UUID, list[LeaveRequest]], context["leaves"])
+        holidays = cast(dict[date, Holiday], context["holidays"])
+        weekends = cast(set[int], context["weekends"])
         if any(
             item.start_date <= work_date <= item.end_date
             for item in duties.get(employee_id, [])
@@ -534,8 +531,7 @@ class AttendanceReportingService:
                 },
             )
             bucket["employee_count"] = int(bucket["employee_count"]) + 1
-            employee_list = bucket["employee_ids"]
-            assert isinstance(employee_list, list)
+            employee_list = cast(list[UUID], bucket["employee_ids"])
             employee_list.append(employee.id)
             record, detail = records.get((employee.id, work_date), (None, None))
             day_status = (
@@ -549,8 +545,7 @@ class AttendanceReportingService:
                     context=context,
                 )
             )
-            statuses = bucket["statuses"]
-            assert isinstance(statuses, defaultdict)
+            statuses = cast(defaultdict[str, int], bucket["statuses"])
             statuses[day_status] += 1
 
         output: list[dict[str, object]] = []
@@ -558,8 +553,7 @@ class AttendanceReportingService:
             grouped.items(), key=lambda item: item[0][1].casefold()
         ):
             total = int(bucket["employee_count"])
-            statuses = bucket["statuses"]
-            assert isinstance(statuses, defaultdict)
+            statuses = cast(defaultdict[str, int], bucket["statuses"])
             attended = int(statuses["present"]) + int(statuses["partial"])
             output.append(
                 {
