@@ -3,6 +3,15 @@ from hajiriflow.db.models.attendance import (
     AttendanceHistory,
     AttendanceRecord,
 )
+from hajiriflow.db.models.attendance_baseline import (
+    AttendanceDayRemark,
+    AttendanceImportRow,
+    AttendanceImportSession,
+    AttendancePeriodLock,
+    AttendancePolicy,
+    AttendanceRecordDetail,
+    ManualAttendanceEvent,
+)
 from hajiriflow.db.models.biometric import (
     BiometricConsentEvent,
     BiometricDeletionRequest,
@@ -58,8 +67,14 @@ from hajiriflow.db.models.workforce_profile import CompanyReportProfile, Employe
 
 __all__ = [
     "AttendanceCorrection",
+    "AttendanceDayRemark",
     "AttendanceHistory",
+    "AttendanceImportRow",
+    "AttendanceImportSession",
+    "AttendancePeriodLock",
+    "AttendancePolicy",
     "AttendanceRecord",
+    "AttendanceRecordDetail",
     "AuditEvent",
     "AuthenticationAttempt",
     "AuthSession",
@@ -87,6 +102,7 @@ __all__ = [
     "LeavePolicy",
     "LeavePolicyRule",
     "LeaveRequest",
+    "ManualAttendanceEvent",
     "OrganizationCalendarSettings",
     "OrganizationNode",
     "PayrollHistory",
