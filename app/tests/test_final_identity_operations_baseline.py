@@ -178,12 +178,12 @@ def test_account_search_edit_linking_and_audit_reader_are_authoritative() -> Non
     )
     assert event_model is not None
     event_model.action = "tampered"
-    with pytest.raises(RuntimeError, match="append-only"):
+    with pytest.raises(RuntimeError, match="immutable"):
         session.flush()
     session.rollback()
     event_model = session.get(AuditEvent, event_model.id)
     session.delete(event_model)
-    with pytest.raises(RuntimeError, match="append-only"):
+    with pytest.raises(RuntimeError, match="immutable"):
         session.flush()
     session.rollback()
     session.close()
