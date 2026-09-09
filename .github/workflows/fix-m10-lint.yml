@@ -5,19 +5,16 @@ on:
     branches:
       - baseline/attendance-engine-v2-20260909
 
-permissions:
-  contents: write
-
 jobs:
   fix:
-    if: github.actor != 'github-actions[bot]'
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: baseline/attendance-engine-v2-20260909
       - name: Apply exact Ruff fixes
-        shell: bash
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -62,7 +59,6 @@ jobs:
           test.write_text(text.replace(old_assert, new_assert))
           PY
       - name: Remove helper and commit
-        shell: bash
         run: |
           git rm .github/workflows/fix-m10-lint.yml
           git config user.name github-actions[bot]
