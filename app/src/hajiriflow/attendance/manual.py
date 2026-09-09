@@ -104,6 +104,7 @@ class ManualAttendanceService:
                 context_data={"organization_id": str(organization_id)},
             )
         )
+        self.session.flush()
         return policy
 
     def active_lock(
@@ -235,6 +236,7 @@ class ManualAttendanceService:
                 context_data={"organization_id": str(organization_id)},
             )
         )
+        self.session.flush()
         return item
 
     def revoke_event(
@@ -271,6 +273,7 @@ class ManualAttendanceService:
                 context_data={"organization_id": str(organization_id)},
             )
         )
+        self.session.flush()
         return item
 
     @staticmethod
@@ -572,6 +575,7 @@ class ManualAttendanceService:
                 context_data={"organization_id": str(organization_id)},
             )
         )
+        self.session.flush()
         return item
 
     def add_remark(
@@ -693,4 +697,5 @@ class ManualAttendanceService:
                 context_data={"organization_id": str(organization_id)},
             )
         )
+        self.session.flush()
         return item
