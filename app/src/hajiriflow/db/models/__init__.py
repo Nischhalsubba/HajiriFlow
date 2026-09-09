@@ -28,6 +28,7 @@ from hajiriflow.db.models.device import (
     DeviceUser,
     RawPunch,
 )
+from hajiriflow.db.models.device_baseline import DeviceOperation, DeviceRuntimeConfiguration
 from hajiriflow.db.models.identity import (
     AuditEvent,
     AuthenticationAttempt,
@@ -68,7 +69,9 @@ __all__ = [
     "Device",
     "DeviceCredential",
     "DeviceEmployeeMapping",
+    "DeviceOperation",
     "DevicePullSession",
+    "DeviceRuntimeConfiguration",
     "DeviceUser",
     "Employee",
     "EmployeeOrganizationAssignment",
