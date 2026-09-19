@@ -1,0 +1,144 @@
+name: Verify Netlify deploy policy
+
+on:
+  pull_request:
+    paths:
+      - netlify.toml
+      - '.github/workflows/**'
+  push:
+    branches: [main]
+    paths:
+      - netlify.toml
+      - '.github/workflows/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: netlify-policy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  netlify-policy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
+
+      - name: Verify fail-closed Netlify build gate
+        env:
+          PRODUCTION_BRANCH: main
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ignore_cmd="$(python3 - <<'PY'
+          import tomllib
+          with open("netlify.toml", "rb") as fh:
+              data = tomllib.load(fh)
+          value = data.get("build", {}).get("ignore")
+          if not isinstance(value, str) or not value.strip():
+              raise SystemExit("Missing non-empty [build].ignore in netlify.toml")
+          print(value)
+          PY
+          )"
+
+          for required in 'CONTEXT' 'PULL_REQUEST' 'BRANCH' 'COMMIT_REF' 'git log -1 --pretty=%s' '[deploy]'; do
+            if ! grep -Fq "$required" <<<"$ignore_cmd"; then
+              echo "::error::Netlify ignore gate is missing required control: $required"
+              exit 1
+            fi
+          done
+
+          tmp="$(mktemp -d)"
+          trap 'rm -rf "$tmp"' EXIT
+          git -C "$tmp" init -q
+          git -C "$tmp" config user.name "netlify-policy-test"
+          git -C "$tmp" config user.email "policy@example.invalid"
+
+          echo ordinary > "$tmp/state"
+          git -C "$tmp" add state
+          git -C "$tmp" commit -qm "ordinary change"
+          ordinary_sha="$(git -C "$tmp" rev-parse HEAD)"
+
+          echo body >> "$tmp/state"
+          git -C "$tmp" add state
+          git -C "$tmp" commit -qm $'ordinary subject\n\nbody mentions [deploy]'
+          body_only_sha="$(git -C "$tmp" rev-parse HEAD)"
+
+          echo middle >> "$tmp/state"
+          git -C "$tmp" add state
+          git -C "$tmp" commit -qm "mention [deploy] but keep working"
+          middle_sha="$(git -C "$tmp" rev-parse HEAD)"
+
+          echo release >> "$tmp/state"
+          git -C "$tmp" add state
+          git -C "$tmp" commit -qm "release candidate [deploy]"
+          release_sha="$(git -C "$tmp" rev-parse HEAD)"
+
+          assert_rc() {
+            expected="$1"
+            context="$2"
+            pull_request="$3"
+            branch="$4"
+            ref="$5"
+            label="$6"
+            set +e
+            (
+              cd "$tmp"
+              CONTEXT="$context" PULL_REQUEST="$pull_request" BRANCH="$branch" COMMIT_REF="$ref" bash -c "$ignore_cmd"
+            )
+            actual="$?"
+            set -e
+            if [ "$actual" -ne "$expected" ]; then
+              echo "::error::$label returned $actual; expected $expected"
+              exit 1
+            fi
+          }
+
+          # Netlify semantics: 0 skips/stops a build; 1 continues the build.
+          assert_rc 0 production false "$PRODUCTION_BRANCH" "$ordinary_sha" "ordinary production commit must skip"
+          assert_rc 0 production false "$PRODUCTION_BRANCH" "$body_only_sha" "body-only marker must skip"
+          assert_rc 0 production false "$PRODUCTION_BRANCH" "$middle_sha" "non-suffix marker must skip"
+          assert_rc 0 deploy-preview true "$PRODUCTION_BRANCH" "$release_sha" "deploy preview must skip"
+          assert_rc 0 branch-deploy false "feature/policy-test" "$release_sha" "branch deploy must skip"
+          assert_rc 0 production false "feature/policy-test" "$release_sha" "non-production branch must skip"
+          assert_rc 0 production false "$PRODUCTION_BRANCH" "not-a-valid-ref" "invalid commit ref must fail closed"
+          assert_rc 1 production false "$PRODUCTION_BRANCH" "$release_sha" "explicit production release must build"
+
+      - name: Reject expensive or bypass deployment paths
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if grep -Fq '@netlify/plugin-lighthouse' netlify.toml; then
+            echo "::error::Run Lighthouse in GitHub Actions/local CI, not as a Netlify Build Plugin."
+            exit 1
+          fi
+
+          while IFS= read -r -d '' file; do
+            [ "$file" = ".github/workflows/netlify-policy.yml" ] && continue
+
+            if grep -Eq 'deploy-preview-[0-9]+--|api\.netlify\.com/build_hooks' "$file"; then
+              echo "::error::$file contains a Netlify preview/build-hook dependency that bypasses the low-build policy."
+              exit 1
+            fi
+
+            if grep -Eq '(^|[[:space:]])netlify[[:space:]]+deploy([[:space:]]|$)' "$file"; then
+              echo "::error::$file performs a direct Netlify CLI deploy outside the Git-gated release flow."
+              exit 1
+            fi
+          done < <(find .github/workflows -type f \( -name '*.yml' -o -name '*.yaml' \) -print0)
+
+      - name: Policy summary
+        run: |
+          echo "Netlify policy verified:"
+          echo "- only production context is eligible"
+          echo "- PR and branch deploys skip"
+          echo "- only main commit subjects ending exactly in [deploy] can build"
+          echo "- invalid commit refs fail closed"
+          echo "- build hooks, hosted PR preview dependencies, and direct CLI deploys are rejected in CI workflows"
+          echo "- Lighthouse stays outside Netlify builds"
