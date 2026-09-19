@@ -2,7 +2,7 @@
   base = "app"
   publish = "site"
   command = "node scripts/generate-runtime-config.mjs"
-  ignore = "if [ \"$BRANCH\" != \"main\" ]; then exit 0; fi; git log -1 --pretty=%B \"$COMMIT_REF\" | grep -Fq '[deploy]' || exit 0; exit 1"
+  ignore = "if [ \"$PULL_REQUEST\" = \"true\" ] || [ \"$BRANCH\" != \"main\" ]; then exit 0; fi; subject=\"$(git log -1 --pretty=%s \"$COMMIT_REF\")\"; case \"$subject\" in *\"[deploy]\") exit 1 ;; *) exit 0 ;; esac"
 
 [[headers]]
   for = "/*"
