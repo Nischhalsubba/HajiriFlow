@@ -2,7 +2,7 @@
   base = "app"
   publish = "site"
   command = "node scripts/generate-runtime-config.mjs"
-  ignore = "if [ \"${CONTEXT:-}\" != \"production\" ] || [ \"${PULL_REQUEST:-false}\" = \"true\" ] || [ \"${BRANCH:-}\" != \"main\" ]; then exit 0; fi; subject=\"$(git log -1 --pretty=%s \"${COMMIT_REF:-}\" 2>/dev/null)\" || exit 0; case \"$subject\" in *\"[deploy]\") exit 1 ;; *) exit 0 ;; esac"
+  ignore = "if [ \"${CONTEXT:-}\" != \"production\" ] || [ \"${PULL_REQUEST:-}\" != \"false\" ] || [ \"${BRANCH:-}\" != \"main\" ]; then exit 0; fi; subject=\"$(git log -1 --pretty=%s \"${COMMIT_REF:-}\" 2>/dev/null)\" || exit 0; case \"$subject\" in *\"[deploy]\") exit 1 ;; *) exit 0 ;; esac"
 
 [[headers]]
   for = "/*"

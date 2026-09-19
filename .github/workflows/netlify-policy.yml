@@ -101,6 +101,8 @@ jobs:
 
           # Netlify semantics: 0 skips/stops a build; 1 continues the build.
           assert_rc 0 production false "$PRODUCTION_BRANCH" "$ordinary_sha" "ordinary production commit must skip"
+          assert_rc 0 production "" "$PRODUCTION_BRANCH" "$release_sha" "missing pull-request flag must skip"
+          assert_rc 0 production "1" "$PRODUCTION_BRANCH" "$release_sha" "non-false pull-request flag must skip"
           assert_rc 0 production false "$PRODUCTION_BRANCH" "$body_only_sha" "body-only marker must skip"
           assert_rc 0 production false "$PRODUCTION_BRANCH" "$middle_sha" "non-suffix marker must skip"
           assert_rc 0 deploy-preview true "$PRODUCTION_BRANCH" "$release_sha" "deploy preview must skip"
