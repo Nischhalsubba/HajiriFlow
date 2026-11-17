@@ -80,7 +80,7 @@ jobs:
           cache-dependency-path: app/pyproject.toml
 
       - name: Pin packaging tools
-        run: python -m pip install --upgrade 'pip==26.2.1' 'setuptools==83.0.0' 'wheel==0.47.0'
+        run: python -m pip install --upgrade 'pip==26.2.1' 'setuptools==84.1.0' 'wheel==0.47.0'
 
       - name: Install development dependencies
         run: python -m pip install -e '.[dev]'
