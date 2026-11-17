@@ -54,12 +54,17 @@ flowchart TD
 
 ## Getting started
 
+The Python application and its `pyproject.toml` live under [`app/`](./app). It requires Python 3.12+ and may need configured PostgreSQL services for integration workflows; consult [`app/README.md`](./app/README.md) and [`app/.env.example`](./app/.env.example) before running services.
+
 ```bash
 git clone https://github.com/Nischhalsubba/HajiriFlow.git
-cd HajiriFlow
+cd HajiriFlow/app
+python -m pip install -e ".[dev]"
+python -m pytest
 ```
 
-Use the committed manifests and lockfiles to determine the current runtime and development commands.
+Run these commands in an activated virtual environment. The tests do not replace verification with the project's configured database and external services.
+
 
 ## Product & design principles
 
