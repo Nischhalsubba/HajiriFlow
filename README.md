@@ -80,3 +80,7 @@ Use terms such as **attendance management, employee attendance, workforce attend
 flowchart LR
     RULE["Workflow / rule change"] --> IMPACT["Map affected states"] --> BUILD["Implement"] --> TEST["Test happy + exception paths"] --> REVIEW["UX / data review"] --> PR["Pull request"]
 ```
+
+## Review evidence and acceptance
+
+See the [formalize attendance, leave and payroll exception test matrix](./docs/ATTENDANCE_AND_PAYROLL_EXCEPTION_MATRIX.md) for domain-specific QA, release evidence and safe rollback procedures.
